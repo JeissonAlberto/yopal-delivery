@@ -6,7 +6,7 @@
   "scripts": {
     "start": "node src/server.js",
     "dev": "node --watch src/server.js",
-    "test": "node test_auth_full.js && node test_order_lifecycle.js && node test_e2e_flow.js && node test_edge_cases.js && node test_flaws_and_security.js && node test_reputation_and_memberships.js && node test_autonomous_full_stack.js && node test_bre_b_and_payments.js",
+    "test": "node test_auth_full.js && node test_order_lifecycle.js && node test_e2e_flow.js && node test_edge_cases.js && node test_flaws_and_security.js && node test_reputation_and_memberships.js && node test_autonomous_full_stack.js && node test_bre_b_and_payments.js && node test_benchmark_and_geofence.js",
     "seed": "node src/db/seed.js",
     "seed:force": "node src/db/seed.js --force"
   },

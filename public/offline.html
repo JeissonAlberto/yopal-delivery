@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Sin Conexión | LUPIN Express Yopal</title>
+  <meta name="theme-color" content="#ea580c">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <style>
+    body { background-color: #090D16; color: #F8FAFC; }
+  </style>
+</head>
+<body class="min-h-screen flex flex-col items-center justify-between p-6 text-center select-none">
+
+  <div class="pt-8 space-y-2">
+    <div class="w-16 h-16 rounded-3xl bg-orange-600/20 text-orange-500 border border-orange-500/30 flex items-center justify-center text-3xl mx-auto shadow-xl shadow-orange-600/20">
+      <i class="fa-solid fa-wifi-slash animate-pulse"></i>
+    </div>
+    <span class="text-[10px] uppercase font-black tracking-widest text-orange-500 block">Modo Offline Resiliente</span>
+    <h1 class="text-2xl font-black text-white">Sin Conexión a Internet</h1>
+    <p class="text-xs text-slate-400 max-w-xs mx-auto leading-relaxed">
+      Parece que la señal móvil 4G se interrumpió en tu zona de Yopal. Tus datos locales y pedidos activos están a salvo.
+    </p>
+  </div>
+
+  <!-- Cached Active Order PIN & Emergency Contacts -->
+  <div class="w-full max-w-sm bg-slate-900/90 border border-slate-800 rounded-3xl p-5 space-y-4 shadow-2xl backdrop-blur-md text-left text-xs">
+    <div class="flex items-center justify-between pb-2 border-b border-slate-800">
+      <span class="text-[10px] uppercase font-bold text-slate-400">Atención de Emergencia</span>
+      <span class="px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 text-[9px] font-bold">Línea Directa</span>
+    </div>
+
+    <p class="text-slate-300 text-xs">
+      Si tienes un pedido en camino y necesitas comunicarte con soporte o con el asadero:
+    </p>
+
+    <div class="space-y-2">
+      <a href="tel:3123456781" class="w-full py-3 px-4 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-2xl flex items-center justify-center gap-2 shadow-lg transition-all">
+        <i class="fa-solid fa-phone"></i> Llamar a Soporte LUPIN Yopal
+      </a>
+      <button onclick="window.location.reload()" class="w-full py-2.5 px-4 bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold rounded-2xl flex items-center justify-center gap-2 transition-all">
+        <i class="fa-solid fa-rotate"></i> Reintentar Conexión
+      </button>
+    </div>
+  </div>
+
+  <footer class="text-center py-4 text-[11px] text-slate-500">
+    <p>LUPIN Express • Yopal, Casanare, Colombia</p>
+  </footer>
+
+</body>
+</html>
