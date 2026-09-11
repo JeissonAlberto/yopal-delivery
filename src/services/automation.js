@@ -21,8 +21,9 @@ function runAutomatedMaintenance() {
       WHERE status = 'active' AND datetime(current_period_end) <= datetime('now')
     `).run();
 
-    // 3. Optimización periódica de base de datos WAL
+    // 3. Optimización periódica de base de datos WAL y Checkpointing
     db.prepare('PRAGMA optimize').run();
+    db.prepare('PRAGMA wal_checkpoint(TRUNCATE)').run();
 
     if (expPromos.changes > 0 || expSubs.changes > 0) {
       console.log(`🧹 Mantenimiento automático: ${expPromos.changes} promos expiradas, ${expSubs.changes} membresías vencidas.`);

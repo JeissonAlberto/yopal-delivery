@@ -485,3 +485,70 @@ async function confirmOtpDelivery() {
     alert('Error al verificar OTP');
   }
 }
+
+// --------------------------------------------------------------------------
+// RETIRO DE GANANCIAS A NEQUI / BRE-B
+// --------------------------------------------------------------------------
+function openWithdrawModal() {
+  document.getElementById('withdraw-modal').classList.remove('hidden');
+}
+
+function closeWithdrawModal() {
+  document.getElementById('withdraw-modal').classList.add('hidden');
+}
+
+function setWithdrawAmount(val) {
+  const input = document.getElementById('withdraw-amount-input');
+  if (!input) return;
+  if (val === 'all') {
+    const raw = document.getElementById('drv-earnings').textContent;
+    const num = parseInt(raw.replace(/\D/g, '')) || 0;
+    input.value = num;
+  } else {
+    input.value = val;
+  }
+}
+
+async function submitWithdraw() {
+  const amountInput = document.getElementById('withdraw-amount-input');
+  const keyInput = document.getElementById('withdraw-key-input');
+  const btn = document.getElementById('btn-submit-withdraw');
+
+  const amount = parseInt(amountInput.value);
+  const key = keyInput.value.trim();
+
+  if (!amount || amount <= 0) {
+    alert('Por favor ingresa un monto válido a retirar');
+    return;
+  }
+  if (!key) {
+    alert('Por favor ingresa tu número de Nequi o Llave Bre-B');
+    return;
+  }
+
+  btn.disabled = true;
+  btn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> Procesando transferencia...`;
+
+  try {
+    const res = await fetch(`/api/drivers/${currentDriverId}/withdraw`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ amount_cop: amount, bre_b_key: key, account_type: 'nequi' })
+    });
+    const data = await res.json();
+
+    if (res.ok) {
+      alert(data.message || '¡Transferencia exitosa!');
+      closeWithdrawModal();
+      amountInput.value = '';
+      changeDriver(); // recargar saldo
+    } else {
+      alert(data.error || 'Error procesando el retiro');
+    }
+  } catch (e) {
+    alert('Error de conexión al solicitar retiro');
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = `<i class="fa-solid fa-bolt"></i> Transferir a mi Nequi / Bre-B`;
+  }
+}

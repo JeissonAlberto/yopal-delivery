@@ -60,7 +60,13 @@
         </button>
       </div>
 
-      <div class="flex items-center gap-2.5">
+      <div class="flex items-center gap-2">
+        <!-- Order History Button (1-Touch Reorder) -->
+        <button onclick="openHistoryModal()" title="Mis Pedidos y Re-ordenar" class="px-3 py-2 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 font-bold text-xs rounded-xl transition-all flex items-center gap-1.5 cursor-pointer">
+          <i class="fa-solid fa-clock-rotate-left text-orange-600"></i>
+          <span class="hidden md:inline">Pedidos</span>
+        </button>
+
         <!-- Modo Día / Modo Noche Toggle -->
         <div id="theme-toggle-container"></div>
 
@@ -195,6 +201,9 @@
         <button onclick="filterCategory('Todos')" class="cat-pill active px-4 py-2 rounded-full bg-orange-600 text-white shadow-md shadow-orange-600/20 whitespace-nowrap transition-all cursor-pointer">
           Todos
         </button>
+        <button onclick="filterCategory('Favoritos')" id="cat-pill-favs" class="cat-pill px-4 py-2 rounded-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300 hover:border-rose-500 hover:text-rose-600 whitespace-nowrap transition-all cursor-pointer">
+          <i class="fa-solid fa-heart text-rose-500 mr-1"></i> Favoritos
+        </button>
         <button onclick="filterCategory('Carne a la Llanera')" class="cat-pill px-4 py-2 rounded-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300 hover:border-orange-600 whitespace-nowrap transition-all cursor-pointer">
           🥩 Carne a la Llanera
         </button>
@@ -263,7 +272,12 @@
         <div class="p-5">
           <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
             <div>
-              <span id="m-detail-category" class="text-xs font-bold text-orange-600 uppercase tracking-wider"></span>
+              <div class="flex items-center gap-2">
+                <span id="m-detail-category" class="text-xs font-bold text-orange-600 uppercase tracking-wider"></span>
+                <button id="btn-fav-toggle" onclick="toggleFavoriteCurrentMerchant()" class="w-8 h-8 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-400 hover:text-rose-500 flex items-center justify-center transition-all cursor-pointer" title="Guardar en Favoritos">
+                  <i class="fa-solid fa-heart text-sm"></i>
+                </button>
+              </div>
               <h1 id="m-detail-name" class="text-2xl font-black text-slate-900 dark:text-white mt-0.5"></h1>
               <p id="m-detail-address" class="text-xs text-slate-500 dark:text-slate-400 mt-1 flex items-center gap-1">
                 <i class="fa-solid fa-location-dot text-orange-600"></i> <span></span>
@@ -865,6 +879,30 @@
       <span>Canasta</span>
     </button>
   </nav>
+
+  <!-- Order History & 1-Touch Reorder Modal -->
+  <div id="history-modal" class="hidden fixed inset-0 bg-slate-950/70 z-50 flex items-center justify-center p-4 backdrop-blur-sm modal-anim-backdrop">
+    <div class="bg-white dark:bg-slate-900 w-full max-w-lg rounded-3xl p-6 shadow-2xl border border-slate-200 dark:border-slate-800 space-y-4 max-h-[90vh] overflow-y-auto modal-anim-content">
+      <div class="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-slate-800">
+        <div class="flex items-center gap-2">
+          <div class="w-8 h-8 rounded-xl bg-orange-50 dark:bg-orange-950/40 text-orange-600 flex items-center justify-center font-bold">
+            <i class="fa-solid fa-clock-rotate-left"></i>
+          </div>
+          <div>
+            <h3 class="text-base font-black text-slate-900 dark:text-white">Mis Pedidos Anteriores</h3>
+            <span class="text-[11px] text-slate-400">Re-ordena tus platos favoritos en 1 solo toque</span>
+          </div>
+        </div>
+        <button onclick="closeHistoryModal()" class="w-8 h-8 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-500 hover:text-slate-800 dark:hover:text-white flex items-center justify-center cursor-pointer transition-all">
+          <i class="fa-solid fa-xmark text-sm"></i>
+        </button>
+      </div>
+
+      <div id="history-orders-list" class="space-y-3">
+        <!-- Injected dynamically -->
+      </div>
+    </div>
+  </div>
 
   <!-- Footer -->
   <footer class="text-center py-6 text-xs text-slate-500 dark:text-slate-500 border-t border-slate-200 dark:border-slate-800 mt-12 bg-white dark:bg-slate-950">

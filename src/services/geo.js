@@ -67,9 +67,40 @@ function detectYopalZone(lat, lng) {
   }
 }
 
+/**
+ * Calcula la tarifa dinámica para Mandados Express en Yopal
+ */
+function calculateErrandFare(distanceKm, isNight = false, isHeavy = false) {
+  let fee = 4000;
+  if (distanceKm > 2.0) {
+    fee += Math.ceil(distanceKm - 2.0) * 1200;
+  }
+  if (isNight) fee += 1500;
+  if (isHeavy) fee += 2000;
+  return Math.ceil(fee / 500) * 500;
+}
+
+/**
+ * Valida y normaliza un número de teléfono en Colombia
+ */
+function validateColombianPhone(phone) {
+  if (!phone || typeof phone !== 'string') return { valid: false, phone: null };
+  const cleaned = phone.replace(/\D/g, '');
+  let normalized = cleaned;
+  if (cleaned.startsWith('57') && cleaned.length === 12) {
+    normalized = cleaned.substring(2);
+  }
+  if (normalized.length === 10 && (normalized.startsWith('3') || normalized.startsWith('6'))) {
+    return { valid: true, phone: normalized };
+  }
+  return { valid: false, phone: null };
+}
+
 module.exports = {
   calculateDistanceKm,
   calculateDeliveryFare,
+  calculateErrandFare,
+  validateColombianPhone,
   estimateDeliveryTimeMinutes,
   detectYopalZone
 };

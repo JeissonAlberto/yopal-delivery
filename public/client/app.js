@@ -119,6 +119,19 @@ function playSuccessChime() {
 // --------------------------------------------------------------------------
 async function loadMerchants() {
   try {
+    if (currentCategory === 'Favoritos') {
+      const res = await fetch(`/api/favorites?user_id=${currentUser.id}`);
+      const data = await res.json();
+      allMerchants = (data.favorites || []).map(m => ({
+        ...m,
+        distanceKm: 0.8,
+        estimatedTime: '20-30',
+        deliveryFee: 4000
+      }));
+      renderMerchants();
+      return;
+    }
+
     const url = `/api/merchants?lat=${userLocation.lat}&lng=${userLocation.lng}${currentCategory !== 'Todos' ? `&category=${encodeURIComponent(currentCategory)}` : ''}${searchQuery ? `&search=${encodeURIComponent(searchQuery)}` : ''}`;
     const res = await fetch(url);
     const data = await res.json();
@@ -248,6 +261,7 @@ async function openMerchantDetail(merchantId) {
     `).join('');
 
     loadMerchantReviews(merchantId);
+    checkCurrentMerchantFavorite(merchantId);
 
     const vMerchant = document.getElementById('view-merchant');
     document.getElementById('view-home').classList.add('hidden');
@@ -1240,4 +1254,139 @@ function confirmLocation() {
   document.getElementById('current-address-label').textContent = userLocation.address;
   closeLocationModal();
   loadMerchants();
+}
+
+// --------------------------------------------------------------------------
+// SISTEMA DE FAVORITOS (FAVORITES)
+// --------------------------------------------------------------------------
+async function checkCurrentMerchantFavorite(merchantId) {
+  try {
+    const res = await fetch(`/api/favorites/check/${merchantId}?user_id=${currentUser.id}`);
+    const data = await res.json();
+    const btn = document.getElementById('btn-fav-toggle');
+    if (!btn) return;
+    if (data.is_favorite) {
+      btn.classList.remove('text-slate-400', 'bg-slate-100', 'dark:bg-slate-800');
+      btn.classList.add('text-white', 'bg-rose-500', 'shadow-md', 'shadow-rose-500/30');
+    } else {
+      btn.classList.remove('text-white', 'bg-rose-500', 'shadow-md', 'shadow-rose-500/30');
+      btn.classList.add('text-slate-400', 'bg-slate-100', 'dark:bg-slate-800');
+    }
+  } catch(e) {}
+}
+
+async function toggleFavoriteCurrentMerchant() {
+  if (!currentMerchant) return;
+  try {
+    const resCheck = await fetch(`/api/favorites/check/${currentMerchant.id}?user_id=${currentUser.id}`);
+    const checkData = await resCheck.json();
+    
+    if (checkData.is_favorite) {
+      await fetch(`/api/favorites/${currentMerchant.id}?user_id=${currentUser.id}`, { method: 'DELETE' });
+    } else {
+      await fetch('/api/favorites', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ user_id: currentUser.id, merchant_id: currentMerchant.id })
+      });
+    }
+    playPopSound();
+    checkCurrentMerchantFavorite(currentMerchant.id);
+  } catch(e) {
+    console.error('Error toggling favorite:', e);
+  }
+}
+
+// --------------------------------------------------------------------------
+// HISTORIAL DE PEDIDOS Y RE-ORDENAR CON 1-TOQUE (1-TOUCH REORDER)
+// --------------------------------------------------------------------------
+async function openHistoryModal() {
+  document.getElementById('history-modal').classList.remove('hidden');
+  await loadOrderHistory();
+}
+
+function closeHistoryModal() {
+  document.getElementById('history-modal').classList.add('hidden');
+}
+
+async function loadOrderHistory() {
+  const container = document.getElementById('history-orders-list');
+  container.innerHTML = `<div class="py-6 text-center text-slate-400 text-xs">Cargando tus pedidos anteriores...</div>`;
+  
+  try {
+    const res = await fetch(`/api/orders/user/${currentUser.id}`);
+    const data = await res.json();
+    const orders = data.orders || [];
+
+    if (orders.length === 0) {
+      container.innerHTML = `<div class="py-8 text-center text-slate-400 text-xs">Aún no has realizado pedidos en Yopal.<br>¡Explora los asaderos y restaurantes aliados!</div>`;
+      return;
+    }
+
+    container.innerHTML = orders.map(o => `
+      <div class="bg-slate-50 dark:bg-slate-800/60 rounded-2xl border border-slate-200 dark:border-slate-700/80 p-4 space-y-2">
+        <div class="flex items-center justify-between">
+          <div>
+            <span class="text-[10px] font-black uppercase text-orange-600 tracking-wider">#${o.order_number}</span>
+            <h4 class="text-sm font-bold text-slate-900 dark:text-white">${o.merchant_name}</h4>
+            <span class="text-[10px] text-slate-400">${new Date(o.created_at).toLocaleDateString('es-CO', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}</span>
+          </div>
+          <div class="text-right">
+            <span class="text-sm font-black text-slate-900 dark:text-white block">${formatCOP(o.total_amount)}</span>
+            <span class="text-[10px] font-bold px-2 py-0.5 rounded-full ${o.status === 'delivered' ? 'bg-emerald-500/10 text-emerald-600' : 'bg-orange-500/10 text-orange-600'}">
+              ${o.status === 'delivered' ? '✓ Entregado' : o.status}
+            </span>
+          </div>
+        </div>
+
+        <div class="text-xs text-slate-600 dark:text-slate-300 py-1.5 border-t border-b border-slate-200/50 dark:border-slate-700/50 space-y-1">
+          ${(o.items || []).map(it => `
+            <div class="flex justify-between">
+              <span>${it.quantity}x ${it.name}</span>
+              <span class="font-semibold">${formatCOP(it.price * it.quantity)}</span>
+            </div>
+          `).join('')}
+        </div>
+
+        <div class="pt-1 flex items-center justify-end">
+          <button onclick="reorderPastOrder('${o.id}')" class="px-3.5 py-1.5 bg-orange-600 hover:bg-orange-700 text-white font-bold text-xs rounded-xl shadow-md shadow-orange-600/20 flex items-center gap-1.5 cursor-pointer btn-spring transition-all">
+            <i class="fa-solid fa-rotate-right text-[10px]"></i> Repetir Este Pedido
+          </button>
+        </div>
+      </div>
+    `).join('');
+  } catch(e) {
+    container.innerHTML = `<div class="py-6 text-center text-rose-500 text-xs">Error cargando el historial de pedidos</div>`;
+  }
+}
+
+async function reorderPastOrder(orderId) {
+  try {
+    const res = await fetch(`/api/orders/${orderId}`);
+    const data = await res.json();
+    const order = data.order;
+    if (!order) return;
+
+    cart = [];
+    (order.items || []).forEach(it => {
+      cart.push({
+        id: `cart-reorder-${Date.now()}-${Math.random()}`,
+        productId: it.product_id || it.id,
+        name: it.name,
+        price: it.price,
+        quantity: it.quantity || 1,
+        options: it.options || {},
+        specialNotes: it.special_notes || 'Repetir pedido previo',
+        merchantId: order.merchant_id,
+        merchantName: order.merchant_name
+      });
+    });
+
+    closeHistoryModal();
+    updateCartBadge();
+    openCheckoutModal();
+    playSuccessChime();
+  } catch(e) {
+    console.error('Error reordering past order:', e);
+  }
 }
