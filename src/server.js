@@ -88,6 +88,7 @@ app.use('/api/subscriptions', require('./routes/subscriptions'));
 app.use('/api/search', require('./routes/search'));
 app.use('/api/promotions', require('./routes/promotions'));
 app.use('/api/payments', require('./routes/payments'));
+app.use('/api/favorites', require('./routes/favorites'));
 
 // Iniciar programador de tareas automáticas
 startAutomationScheduler();

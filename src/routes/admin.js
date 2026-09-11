@@ -103,4 +103,31 @@ router.post('/dispatch-manual', (req, res) => {
   }
 });
 
+// ==============================================================================
+// EXPORTACIÓN DE REPORTES FINANCIEROS Y AUDITORÍA EN CSV
+// ==============================================================================
+router.get('/reports/financial.csv', (req, res) => {
+  try {
+    const orders = db.prepare(`
+      SELECT 
+        o.order_number, o.created_at, o.merchant_name, o.client_name,
+        o.subtotal, o.delivery_fee, o.service_fee, o.tip_amount, o.discount_amount, o.total_amount,
+        o.payment_method, o.status, o.driver_name
+      FROM orders o
+      ORDER BY o.created_at DESC
+    `).all();
+
+    let csv = 'Numero_Pedido,Fecha_Hora,Comercio,Cliente,Subtotal_COP,Envio_COP,Servicio_COP,Propina_COP,Descuento_COP,Total_COP,Metodo_Pago,Estado,Repartidor\n';
+    orders.forEach(o => {
+      csv += `"${o.order_number}","${o.created_at}","${o.merchant_name}","${o.client_name}",${o.subtotal},${o.delivery_fee},${o.service_fee},${o.tip_amount},${o.discount_amount},${o.total_amount},"${o.payment_method}","${o.status}","${o.driver_name || 'N/A'}"\n`;
+    });
+
+    res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+    res.setHeader('Content-Disposition', 'attachment; filename="reporte_financiero_lupin_yopal.csv"');
+    res.send(csv);
+  } catch (err) {
+    res.status(500).json({ error: 'Error generando reporte CSV' });
+  }
+});
+
 module.exports = router;

@@ -114,4 +114,63 @@ router.post('/:id/location', (req, res) => {
   }
 });
 
+// ==============================================================================
+// SOLICITUD DE RETIRO DE GANANCIAS A NEQUI / BRE-B
+// ==============================================================================
+router.post('/:id/withdraw', (req, res) => {
+  try {
+    const { id } = req.params;
+    const { amount_cop, bre_b_key, account_type = 'nequi' } = req.body;
+
+    const amount = parseInt(amount_cop);
+    if (!amount || isNaN(amount) || amount <= 0) {
+      return res.status(400).json({ error: 'Monto de retiro inválido' });
+    }
+
+    if (!bre_b_key) {
+      return res.status(400).json({ error: 'Se requiere el número de cuenta Nequi o Llave Bre-B para la transferencia' });
+    }
+
+    const driver = db.prepare('SELECT id, name, balance_earnings FROM drivers WHERE id = ? OR user_id = ?').get(id, id);
+    if (!driver) {
+      return res.status(404).json({ error: 'Repartidor no encontrado' });
+    }
+
+    if (amount > driver.balance_earnings) {
+      return res.status(400).json({
+        error: `Saldo insuficiente. Tu saldo disponible para retiro es de $${driver.balance_earnings.toLocaleString('es-CO')} COP`
+      });
+    }
+
+    const txId = `tx-wdr-${Date.now().toString().slice(-6)}`;
+
+    // Transacción atómica de retiro
+    const withdrawTx = db.transaction(() => {
+      db.prepare(`
+        UPDATE drivers
+        SET balance_earnings = balance_earnings - ?
+        WHERE id = ?
+      `).run(amount, driver.id);
+
+      db.prepare(`
+        INSERT INTO driver_wallet_ledger (id, driver_id, transaction_type, amount, description)
+        VALUES (?, ?, 'withdrawal_payout', ?, ?)
+      `).run(txId, driver.id, -amount, `Transferencia exitosa a ${account_type.toUpperCase()} / Bre-B: ${bre_b_key}`);
+    });
+
+    withdrawTx();
+
+    const updatedDriver = db.prepare('SELECT balance_earnings, balance_cash_collected FROM drivers WHERE id = ?').get(driver.id);
+
+    res.json({
+      message: `¡Transferencia de $${amount.toLocaleString('es-CO')} COP enviada exitosamente a ${bre_b_key}!`,
+      transaction_id: txId,
+      new_balance: updatedDriver.balance_earnings
+    });
+  } catch (err) {
+    console.error('Error procesando retiro:', err);
+    res.status(500).json({ error: 'Error al procesar el retiro' });
+  }
+});
+
 module.exports = router;
