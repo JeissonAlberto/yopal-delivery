@@ -1,0 +1,68 @@
+version: '3.8'
+
+services:
+  # 1. API Core & Frontend Static Server
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: lupin_express_api
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    environment:
+      - PORT=3000
+      - NODE_ENV=production
+      - JWT_SECRET=${JWT_SECRET:-lupin_express_yopal_casanare_secret_key_2026}
+      - DATABASE_URL=postgres://lupin_admin:${DB_PASS:-lupin_secure_pass_2026}@db:5432/lupin_delivery_db
+      - REDIS_URL=redis://redis:6379
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_started
+    networks:
+      - lupin_network
+
+  # 2. PostgreSQL 16 + Extensión PostGIS Espacial
+  db:
+    image: postgis/postgis:16-3.4-alpine
+    container_name: yopal_express_postgis
+    restart: unless-stopped
+    environment:
+      - POSTGRES_USER=lupin_admin
+      - POSTGRES_PASSWORD=${DB_PASS:-lupin_secure_pass_2026}
+      - POSTGRES_DB=lupin_delivery_db
+    ports:
+      - "127.0.0.1:5432:5432"
+    volumes:
+      - postgis_data:/var/lib/postgresql/data
+      - ./schema_postgis.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U lupin_admin -d lupin_delivery_db"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    networks:
+      - lupin_network
+
+  # 3. Redis 7 para WebSockets y Caché de Telemetría
+  redis:
+    image: redis:7-alpine
+    container_name: yopal_express_redis
+    restart: unless-stopped
+    command: redis-server --appendonly yes
+    ports:
+      - "127.0.0.1:6379:6379"
+    volumes:
+      - redis_data:/data
+    networks:
+      - lupin_network
+
+networks:
+  lupin_network:
+    driver: bridge
+
+volumes:
+  postgis_data:
+  redis_data:

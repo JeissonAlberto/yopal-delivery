@@ -1,0 +1,333 @@
+<!DOCTYPE html>
+<html lang="es" class="h-full scroll-smooth">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>LUPIN Repartidor | App Móvil de Entregas Yopal</title>
+  <link rel="manifest" href="/manifest.json">
+  <meta name="theme-color" content="#ea580c">
+  <link rel="icon" type="image/png" href="/assets/logo.png">
+  <link rel="stylesheet" href="/css/styles.css?v=2.5.0">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            brand: {
+              orange: '#ea580c',
+              'orange-hover': '#c2410c',
+              emerald: '#10b981',
+              'emerald-hover': '#059669',
+            }
+          }
+        }
+      }
+    }
+  </script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script src="/socket.io/socket.io.js"></script>
+  <script src="/js/theme.js?v=2.5.0"></script>
+  <script src="/js/auth.js?v=2.5.0"></script>
+  <script>document.addEventListener('DOMContentLoaded', () => { lupinAuthCheck(['driver'], false); });</script>
+  <style>
+    /* Fullscreen mobile layout for Driver App */
+    html, body {
+      height: 100%;
+      overflow: hidden;
+    }
+    #driver-main-map {
+      height: 100%;
+      width: 100%;
+      z-index: 10;
+    }
+    .driver-radar-ping {
+      position: absolute;
+      width: 120px;
+      height: 120px;
+      border-radius: 50%;
+      background: rgba(234, 88, 12, 0.25);
+      animation: radarPulse 2s infinite cubic-bezier(0.16, 1, 0.3, 1);
+      pointer-events: none;
+    }
+    @keyframes radarPulse {
+      0% { transform: scale(0.5); opacity: 1; }
+      100% { transform: scale(2.5); opacity: 0; }
+    }
+  </style>
+</head>
+<body class="bg-slate-900 text-white font-sans flex flex-col h-full select-none">
+
+  <!-- Mobile Top Bar: Driver Profile, Online Switch & Theme -->
+  <header class="bg-white/95 dark:bg-slate-900/95 border-b border-slate-200 dark:border-slate-800 px-4 py-2.5 z-40 backdrop-blur-md shadow-sm transition-colors duration-200 flex-shrink-0">
+    <div class="max-w-md mx-auto flex items-center justify-between">
+      
+      <!-- Driver Profile Switcher -->
+      <div class="flex items-center gap-2.5">
+        <img src="/assets/logo.png" alt="LUPIN" class="w-9 h-9 rounded-xl object-cover shadow-sm border border-orange-500/40">
+        <div>
+          <div class="flex items-center gap-1">
+            <select id="driver-selector" onchange="changeDriver()" class="bg-transparent text-slate-900 dark:text-white font-black text-xs cursor-pointer focus:outline-none">
+              <!-- Injected dynamically -->
+            </select>
+            <i class="fa-solid fa-chevron-down text-[10px] text-slate-400"></i>
+          </div>
+          <span class="text-[10px] text-orange-600 font-bold block leading-tight">Moto Yamaha FZ • WXY-12E</span>
+        </div>
+      </div>
+
+      <!-- Online / Offline Toggle Switch -->
+      <div class="flex items-center gap-2">
+        <div id="theme-toggle-container"></div>
+
+        <button id="btn-toggle-online" onclick="toggleOnlineStatus()" class="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[11px] font-black tracking-wider transition-all bg-emerald-500 text-white shadow-md shadow-emerald-500/25 cursor-pointer">
+          <span class="w-2 h-2 rounded-full bg-white animate-ping"></span>
+          <span id="label-online-status">CONECTADO</span>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Viewport: Full GPS Map Area -->
+  <main class="flex-1 relative w-full h-full overflow-hidden">
+    
+    <!-- Fullscreen Interactive Map for Navigation -->
+    <div id="driver-main-map"></div>
+
+    <!-- Active Navigation Top Alert (Visible during active order) -->
+    <div id="driver-nav-banner" class="hidden absolute top-3 left-4 right-4 max-w-md mx-auto z-30 bg-slate-950/90 text-white rounded-2xl p-3.5 shadow-2xl border border-slate-700/80 backdrop-blur-md flex items-center justify-between animate-view-in">
+      <div class="flex items-center gap-3">
+        <div class="w-10 h-10 rounded-xl bg-orange-600 text-white flex items-center justify-center text-lg font-black shadow-md shadow-orange-600/30 flex-shrink-0" id="nav-step-icon">
+          <i class="fa-solid fa-arrow-turn-up"></i>
+        </div>
+        <div>
+          <span class="text-[10px] uppercase font-black tracking-wider text-orange-400 block" id="nav-step-label">1. RUTA AL RESTAURANTE</span>
+          <p class="text-xs font-bold text-white leading-tight truncate max-w-[200px]" id="nav-step-address">Mamona & Tradición del Casanare</p>
+        </div>
+      </div>
+      <span class="text-xs font-black text-emerald-400 bg-emerald-950/60 px-2.5 py-1 rounded-xl border border-emerald-800" id="nav-step-distance">~1.2 km</span>
+    </div>
+
+    <!-- State 1: IDLE / RADAR (Searching for Orders in Yopal) -->
+    <div id="driver-idle-overlay" class="absolute inset-0 pointer-events-none z-20 flex flex-col items-center justify-between p-4 pb-20">
+      
+      <!-- Central Radar Pulsing Indicator -->
+      <div class="my-auto flex flex-col items-center gap-3 pointer-events-auto">
+        <div class="relative w-28 h-28 flex items-center justify-center">
+          <div class="driver-radar-ping"></div>
+          <div class="driver-radar-ping" style="animation-delay: 0.8s;"></div>
+          <div class="w-20 h-20 rounded-full bg-gradient-to-tr from-orange-600 to-amber-500 flex items-center justify-center text-white text-3xl shadow-2xl shadow-orange-600/40 z-10 border-4 border-slate-900">
+            <i class="fa-solid fa-motorcycle"></i>
+          </div>
+        </div>
+        <div class="bg-slate-950/80 backdrop-blur-md px-4 py-2 rounded-2xl border border-slate-800 text-center shadow-xl">
+          <span class="text-xs font-black text-white flex items-center gap-1.5 justify-center">
+            <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span> Buscando pedidos en Yopal...
+          </span>
+          <span class="text-[10px] text-slate-400 font-medium">Cobertura: La Campiña, Centro, Unicentro y Llano Lindo</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Bottom Sliding Drawer: Earnings & Active Delivery Flow -->
+    <div class="absolute bottom-3 left-4 right-4 max-w-md mx-auto z-30 space-y-2">
+      
+      <!-- State A: Active Order Action Sheet (Visible when order is accepted) -->
+      <div id="driver-active-card" class="hidden bg-slate-900/95 text-white rounded-3xl p-4 shadow-2xl border border-slate-800 backdrop-blur-lg space-y-3">
+        
+        <!-- Header: Order Number & Delivery Payout -->
+        <div class="flex items-center justify-between pb-2.5 border-b border-slate-800">
+          <div>
+            <span class="text-[10px] uppercase font-bold text-slate-400">Pedido en Curso</span>
+            <h3 id="active-order-number" class="text-sm font-black text-white">#YPL-2026-0001</h3>
+          </div>
+          <div class="text-right">
+            <span class="text-[10px] uppercase font-bold text-slate-400 block">Tu Ganancia</span>
+            <span id="active-order-fee" class="text-sm font-black text-emerald-400 bg-emerald-950/60 px-3 py-0.5 rounded-xl border border-emerald-800">
+              +$4.800 COP
+            </span>
+          </div>
+        </div>
+
+        <!-- Addresses Flow -->
+        <div class="space-y-2 text-xs">
+          <div class="flex items-start gap-2.5 bg-slate-800/60 p-2.5 rounded-2xl border border-slate-700/60">
+            <div class="w-7 h-7 rounded-xl bg-orange-500/20 text-orange-400 flex items-center justify-center font-bold flex-shrink-0 mt-0.5">
+              <i class="fa-solid fa-utensils text-xs"></i>
+            </div>
+            <div class="flex-1 min-w-0">
+              <span class="text-[9px] uppercase font-extrabold text-slate-400 block">1. Recoger en:</span>
+              <p id="active-merchant-name" class="font-bold text-white truncate"></p>
+              <p id="active-merchant-address" class="text-[11px] text-slate-400 truncate"></p>
+            </div>
+          </div>
+
+          <div class="flex items-start gap-2.5 bg-slate-800/60 p-2.5 rounded-2xl border border-slate-700/60">
+            <div class="w-7 h-7 rounded-xl bg-emerald-500/20 text-emerald-400 flex items-center justify-center font-bold flex-shrink-0 mt-0.5">
+              <i class="fa-solid fa-house-chimney text-xs"></i>
+            </div>
+            <div class="flex-1 min-w-0">
+              <span class="text-[9px] uppercase font-extrabold text-slate-400 block">2. Entregar a:</span>
+              <p id="active-client-name" class="font-bold text-white truncate"></p>
+              <p id="active-client-address" class="text-[11px] text-slate-400 truncate"></p>
+              <p id="active-client-ref" class="text-amber-300 text-[10px] font-medium mt-0.5"></p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Payment Info / Cash alert -->
+        <div id="active-cash-info" class="p-2.5 bg-slate-950 rounded-xl border border-slate-800 text-xs flex items-center justify-between">
+          <div>
+            <span class="text-slate-400 text-[11px]">Cobro en Efectivo:</span>
+            <span id="active-total-charge" class="font-black text-white block">$0</span>
+          </div>
+          <div class="text-right" id="active-change-row">
+            <span class="text-amber-400 text-[11px] font-bold">Vueltas a dar:</span>
+            <span id="active-change-due" class="font-black text-amber-400 block">$0</span>
+          </div>
+        </div>
+
+        <!-- 1-Touch External GPS & Call Buttons -->
+        <div class="grid grid-cols-2 gap-2 text-xs font-bold">
+          <button onclick="openExternalGps('auto')" class="py-2.5 px-3 bg-slate-800 hover:bg-slate-700 text-white rounded-xl flex items-center justify-center gap-1.5 transition-all cursor-pointer border border-slate-700">
+            <i class="fa-solid fa-location-arrow text-emerald-400"></i> Abrir en Waze / Maps
+          </button>
+          <a id="btn-call-client" href="tel:3123456781" class="py-2.5 px-3 bg-slate-800 hover:bg-slate-700 text-white rounded-xl flex items-center justify-center gap-1.5 transition-all cursor-pointer border border-slate-700">
+            <i class="fa-solid fa-phone text-orange-400"></i> Llamar Cliente
+          </a>
+        </div>
+
+        <!-- Giant Step Action Button (Advances the Delivery Flow) -->
+        <div id="flow-buttons-container" class="pt-1">
+          <!-- Injected dynamically -->
+        </div>
+      </div>
+
+      <!-- State B: Idle Daily Earnings & Gamification Pill -->
+      <div id="driver-summary-pill" class="bg-slate-900/95 text-white rounded-2xl p-3.5 shadow-2xl border border-slate-800 backdrop-blur-md flex items-center justify-between">
+        <div class="flex items-center gap-3">
+          <div class="w-10 h-10 rounded-xl bg-emerald-500/20 text-emerald-400 flex items-center justify-center font-black text-sm">
+            <i class="fa-solid fa-wallet"></i>
+          </div>
+          <div>
+            <span class="text-[10px] uppercase font-bold text-slate-400 block">Ganancias de Hoy</span>
+            <p id="drv-earnings" class="text-sm font-black text-emerald-400 leading-tight">$45.000 COP</p>
+          </div>
+        </div>
+
+        <div class="flex items-center gap-3 text-right">
+          <div>
+            <span class="text-[10px] uppercase font-bold text-slate-400 block">Efectivo en Caja</span>
+            <p id="drv-cash" class="text-xs font-black text-amber-400 leading-tight">$85.000 COP</p>
+          </div>
+          <div class="h-6 w-px bg-slate-800"></div>
+          <div>
+            <span class="text-[10px] uppercase font-bold text-slate-400 block">Entregas</span>
+            <p id="drv-count" class="text-xs font-black text-white leading-tight">12</p>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </main>
+
+  <!-- Incoming Order Offer Modal (Sound Radar Alert) -->
+  <div id="offer-modal" class="fixed inset-0 bg-slate-950/85 backdrop-blur-md z-50 hidden flex items-center justify-center p-4">
+    <div class="bg-slate-900 border border-slate-800 rounded-3xl max-w-sm w-full p-6 text-center space-y-4 shadow-2xl animate-view-in">
+      
+      <!-- Countdown Ring -->
+      <div class="relative w-20 h-20 mx-auto flex items-center justify-center">
+        <div class="w-16 h-16 rounded-full bg-orange-600 flex items-center justify-center text-white text-2xl font-black shadow-xl shadow-orange-600/40">
+          <i class="fa-solid fa-bell animate-bounce"></i>
+        </div>
+      </div>
+
+      <div>
+        <span class="px-3 py-1 rounded-full bg-emerald-500/20 text-emerald-400 font-black text-xs border border-emerald-500/30">
+          ¡NUEVA OFERTA DISPONIBLE!
+        </span>
+        <h3 id="offer-order-number" class="text-lg font-black text-white mt-2">#YPL-2026-0001</h3>
+      </div>
+
+      <!-- Payout -->
+      <div class="p-3 bg-emerald-950/40 rounded-2xl border border-emerald-800 text-center">
+        <span class="text-[10px] uppercase font-bold text-emerald-400">Ganancia para ti:</span>
+        <p id="offer-fee" class="text-2xl font-black text-emerald-400">+$4.800 COP</p>
+      </div>
+
+      <!-- Pickup & Dropoff info -->
+      <div class="space-y-2 text-left text-xs bg-slate-800/60 p-3 rounded-2xl border border-slate-700/60">
+        <div class="flex items-start gap-2">
+          <i class="fa-solid fa-utensils text-orange-400 mt-0.5"></i>
+          <div>
+            <span class="text-[10px] text-slate-400 block font-bold">Recoger en:</span>
+            <span id="offer-merchant-name" class="font-bold text-white">Mamona & Tradición</span>
+          </div>
+        </div>
+        <div class="flex items-start gap-2">
+          <i class="fa-solid fa-location-dot text-emerald-400 mt-0.5"></i>
+          <div>
+            <span class="text-[10px] text-slate-400 block font-bold">Entregar a:</span>
+            <span id="offer-client-address" class="font-bold text-white">Calle 24 # 25-18, La Campiña</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Action Buttons -->
+      <div class="space-y-2 pt-2">
+        <button onclick="acceptPendingOffer()" class="w-full py-4 bg-emerald-600 hover:bg-emerald-700 text-white font-black text-sm rounded-2xl shadow-xl shadow-emerald-600/30 flex items-center justify-center gap-2 cursor-pointer transition-all active:scale-95">
+          <i class="fa-solid fa-circle-check text-base"></i> ACEPTAR PEDIDO
+        </button>
+        <button onclick="rejectPendingOffer()" class="w-full py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-400 font-bold text-xs rounded-xl cursor-pointer transition-all">
+          Rechazar
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Giant Glove-Friendly OTP Verification Modal -->
+  <div id="otp-modal" class="fixed inset-0 bg-slate-950/85 backdrop-blur-md z-50 hidden flex items-center justify-center p-4">
+    <div class="bg-slate-900 border border-slate-800 rounded-3xl max-w-sm w-full p-6 text-center space-y-4 shadow-2xl animate-view-in">
+      
+      <div class="w-14 h-14 rounded-2xl bg-emerald-500/20 text-emerald-400 flex items-center justify-center text-2xl mx-auto shadow-lg shadow-emerald-500/20">
+        <i class="fa-solid fa-key"></i>
+      </div>
+
+      <div>
+        <h3 class="text-base font-black text-white">PIN de Entrega Segura</h3>
+        <p class="text-xs text-slate-400 mt-0.5">Pídele al cliente el código de 4 dígitos que ve en su pantalla</p>
+      </div>
+
+      <!-- PIN Input Display -->
+      <div class="flex items-center justify-center gap-2 py-2">
+        <input type="text" id="otp-digit-input" maxlength="4" placeholder="••••" readonly class="w-48 text-center text-3xl font-black tracking-[0.4em] bg-slate-950 text-emerald-400 border-2 border-emerald-500 rounded-2xl py-2 shadow-inner focus:outline-none">
+      </div>
+
+      <!-- Giant Thumb Keypad for Gloves [1..9, C, 0, OK] -->
+      <div class="grid grid-cols-3 gap-2 pt-1 text-base font-black">
+        <button onclick="pressOtpDigit('1')" class="py-3.5 bg-slate-800 hover:bg-slate-700 active:bg-slate-600 rounded-xl text-white shadow transition-all">1</button>
+        <button onclick="pressOtpDigit('2')" class="py-3.5 bg-slate-800 hover:bg-slate-700 active:bg-slate-600 rounded-xl text-white shadow transition-all">2</button>
+        <button onclick="pressOtpDigit('3')" class="py-3.5 bg-slate-800 hover:bg-slate-700 active:bg-slate-600 rounded-xl text-white shadow transition-all">3</button>
+        <button onclick="pressOtpDigit('4')" class="py-3.5 bg-slate-800 hover:bg-slate-700 active:bg-slate-600 rounded-xl text-white shadow transition-all">4</button>
+        <button onclick="pressOtpDigit('5')" class="py-3.5 bg-slate-800 hover:bg-slate-700 active:bg-slate-600 rounded-xl text-white shadow transition-all">5</button>
+        <button onclick="pressOtpDigit('6')" class="py-3.5 bg-slate-800 hover:bg-slate-700 active:bg-slate-600 rounded-xl text-white shadow transition-all">6</button>
+        <button onclick="pressOtpDigit('7')" class="py-3.5 bg-slate-800 hover:bg-slate-700 active:bg-slate-600 rounded-xl text-white shadow transition-all">7</button>
+        <button onclick="pressOtpDigit('8')" class="py-3.5 bg-slate-800 hover:bg-slate-700 active:bg-slate-600 rounded-xl text-white shadow transition-all">8</button>
+        <button onclick="pressOtpDigit('9')" class="py-3.5 bg-slate-800 hover:bg-slate-700 active:bg-slate-600 rounded-xl text-white shadow transition-all">9</button>
+        <button onclick="clearOtpInput()" class="py-3.5 bg-rose-950/40 hover:bg-rose-900/60 text-rose-400 border border-rose-800/60 rounded-xl text-sm transition-all"><i class="fa-solid fa-delete-left"></i></button>
+        <button onclick="pressOtpDigit('0')" class="py-3.5 bg-slate-800 hover:bg-slate-700 active:bg-slate-600 rounded-xl text-white shadow transition-all">0</button>
+        <button onclick="confirmOtpDelivery()" class="py-3.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-sm shadow transition-all"><i class="fa-solid fa-check"></i></button>
+      </div>
+
+      <button onclick="closeOtpModal()" class="text-xs text-slate-500 hover:text-slate-300 pt-2 block mx-auto cursor-pointer">
+        Cancelar y volver al mapa
+      </button>
+    </div>
+  </div>
+
+  <script src="/driver/app.js?v=2.5.0"></script>
+</body>
+</html>

@@ -1,0 +1,242 @@
+/* ==========================================================================
+   LUPIN EXPRESS - UI/UX PRO MAX MOTION & TRANSITIONS SYSTEM
+   2 Colores de Marca + Curvas Físicas Fluidas (Spring / Ease-Out a 60fps)
+   ========================================================================== */
+
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800;900&display=swap');
+
+:root {
+  /* 2 Colores Principales */
+  --brand-orange: #ea580c;
+  --brand-orange-hover: #c2410c;
+  --brand-orange-tint: rgba(234, 88, 12, 0.12);
+  --brand-orange-glow: rgba(234, 88, 12, 0.30);
+
+  --brand-emerald: #10b981;
+  --brand-emerald-hover: #059669;
+  --brand-emerald-tint: rgba(16, 185, 129, 0.12);
+  --brand-emerald-glow: rgba(16, 185, 129, 0.30);
+
+  --font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  
+  /* Curvas Físicas de Animación (Apple HIG & DoorDash Fluid Physics) */
+  --ease-spring: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-sheet: cubic-bezier(0.32, 0.72, 0, 1);
+  --ease-bounce: cubic-bezier(0.34, 1.56, 0.64, 1);
+  --dur-fast: 0.18s;
+  --dur-normal: 0.28s;
+  --dur-slow: 0.4s;
+}
+
+/* ==========================================================================
+   MODO DÍA (LIGHT MODE)
+   ========================================================================== */
+html:not(.dark), body:not(.dark) {
+  --bg-page: #f8fafc;
+  --bg-card: #ffffff;
+  --bg-card-hover: #f1f5f9;
+  --bg-muted: #f1f5f9;
+  --border-subtle: #e2e8f0;
+  --border-strong: #cbd5e1;
+  --text-main: #0f172a;
+  --text-muted: #64748b;
+  --text-subtle: #94a3b8;
+  --header-bg: rgba(255, 255, 255, 0.92);
+  --shadow-card: 0 4px 20px -2px rgba(15, 23, 42, 0.06);
+  --shadow-hover: 0 16px 32px -6px rgba(234, 88, 12, 0.12), 0 6px 12px -3px rgba(0, 0, 0, 0.04);
+}
+
+/* ==========================================================================
+   MODO NOCHE (DARK MODE)
+   ========================================================================== */
+html.dark, body.dark {
+  --bg-page: #090d16;
+  --bg-card: #111827;
+  --bg-card-hover: #1f2937;
+  --bg-muted: #1e293b;
+  --border-subtle: #1e293b;
+  --border-strong: #334155;
+  --text-main: #f8fafc;
+  --text-muted: #94a3b8;
+  --text-subtle: #64748b;
+  --header-bg: rgba(9, 13, 22, 0.92);
+  --shadow-card: 0 10px 30px -5px rgba(0, 0, 0, 0.5);
+  --shadow-hover: 0 20px 40px -8px rgba(234, 88, 12, 0.25), 0 8px 16px -4px rgba(0, 0, 0, 0.4);
+}
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+  font-family: var(--font-family);
+  -webkit-tap-highlight-color: transparent;
+}
+
+body {
+  background-color: var(--bg-page);
+  color: var(--text-main);
+  min-height: 100vh;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  overflow-x: hidden;
+}
+
+/* Transición de Tema Suave Global */
+body, header, nav, footer, .theme-card, .theme-input {
+  transition: background-color var(--dur-normal) ease, border-color var(--dur-normal) ease, color var(--dur-normal) ease;
+}
+
+/* Scrollbars */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: var(--border-strong);
+  border-radius: 9999px;
+}
+
+/* ==========================================================================
+   ANIMACIONES DE VISTA & ENTRADA FLUIDA (VIEW TRANSITIONS)
+   ========================================================================== */
+@keyframes viewFadeInSlideUp {
+  0% {
+    opacity: 0;
+    transform: translateY(16px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.view-transition-enter {
+  animation: viewFadeInSlideUp var(--dur-normal) var(--ease-spring) forwards;
+  will-change: transform, opacity;
+}
+
+/* ==========================================================================
+   MODALES, BOTTOM SHEETS & DRAWERS (SPRING PHYSICS)
+   ========================================================================== */
+@keyframes backdropFadeIn {
+  from { opacity: 0; backdrop-filter: blur(0px); }
+  to { opacity: 1; backdrop-filter: blur(8px); }
+}
+
+@keyframes modalPopIn {
+  0% {
+    opacity: 0;
+    transform: scale(0.92) translateY(20px);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+@keyframes sheetSlideUp {
+  0% {
+    opacity: 0;
+    transform: translateY(100%);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes drawerSlideRight {
+  0% {
+    opacity: 0;
+    transform: translateX(100%);
+  }
+  100% {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+.modal-anim-backdrop {
+  animation: backdropFadeIn var(--dur-fast) ease-out forwards;
+}
+
+.modal-anim-content {
+  animation: modalPopIn var(--dur-normal) var(--ease-spring) forwards;
+  will-change: transform, opacity;
+}
+
+.bottom-sheet-anim {
+  animation: sheetSlideUp var(--dur-slow) var(--ease-sheet) forwards;
+  will-change: transform;
+}
+
+.drawer-right-anim {
+  animation: drawerSlideRight var(--dur-normal) var(--ease-spring) forwards;
+  will-change: transform;
+}
+
+/* ==========================================================================
+   MICRO-INTERACCIONES EN BOTONES Y TARJETAS (TACTILE FEEDBACK)
+   ========================================================================== */
+.card-hover-lift {
+  transition: transform var(--dur-fast) var(--ease-spring), box-shadow var(--dur-fast) var(--ease-spring), border-color var(--dur-fast) ease;
+  will-change: transform, box-shadow;
+}
+.card-hover-lift:hover {
+  transform: translateY(-4px);
+  box-shadow: var(--shadow-hover);
+}
+.card-hover-lift:active {
+  transform: translateY(-1px) scale(0.99);
+}
+
+.btn-spring {
+  transition: transform var(--dur-fast) var(--ease-spring), background-color var(--dur-fast) ease, box-shadow var(--dur-fast) ease;
+  will-change: transform;
+  cursor: pointer;
+}
+.btn-spring:hover {
+  transform: translateY(-1px);
+}
+.btn-spring:active {
+  transform: scale(0.95);
+}
+
+/* Badge Bounce Effect al Agregar Productos */
+@keyframes badgePopBounce {
+  0% { transform: scale(1); }
+  40% { transform: scale(1.4); }
+  75% { transform: scale(0.9); }
+  100% { transform: scale(1); }
+}
+
+.badge-bounce-active {
+  animation: badgePopBounce 0.35s var(--ease-bounce) forwards;
+}
+
+/* Radar Pulse Glow */
+@keyframes pulseGlowOrange {
+  0% { transform: scale(1); box-shadow: 0 0 0 0 var(--brand-orange-glow); }
+  70% { transform: scale(1.02); box-shadow: 0 0 0 16px rgba(234, 88, 12, 0); }
+  100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(234, 88, 12, 0); }
+}
+
+.pulse-radar-orange {
+  animation: pulseGlowOrange 2s infinite ease-in-out;
+}
+
+/* Leaflet Map Styling */
+.leaflet-container {
+  font-family: var(--font-family) !important;
+  border-radius: 1.25rem !important;
+  transition: filter var(--dur-normal) ease;
+}
+
+/* Accesibilidad Focus Rings */
+a:focus-visible, button:focus-visible, input:focus-visible, select:focus-visible {
+  outline: 2px solid var(--brand-orange);
+  outline-offset: 2px;
+}

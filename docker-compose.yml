@@ -1,0 +1,48 @@
+version: '3.8'
+
+services:
+  # 1. API Core & Static Frontends
+  app:
+    build: .
+    container_name: yopal_express_api
+    restart: always
+    ports:
+      - "3000:3000"
+    environment:
+      - PORT=3000
+      - NODE_ENV=production
+      - DATABASE_URL=postgres://yopal_user:yopal_secure_pass_2026@db:5432/yopal_delivery_db
+      - REDIS_URL=redis://redis:6379
+      - JWT_SECRET=yopal_express_production_secret_key_2026
+    depends_on:
+      - db
+      - redis
+
+  # 2. Base de Datos PostgreSQL + PostGIS Geoespacial
+  db:
+    image: postgis/postgis:16-3.4-alpine
+    container_name: yopal_express_postgis
+    restart: always
+    environment:
+      - POSTGRES_USER=yopal_user
+      - POSTGRES_PASSWORD=yopal_secure_pass_2026
+      - POSTGRES_DB=yopal_delivery_db
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgis_data:/var/lib/postgresql/data
+      - ./schema_postgis.sql:/docker-entrypoint-initdb.d/init.sql:ro
+
+  # 3. Redis para WebSockets Pub/Sub y Caché de Telemetría GPS
+  redis:
+    image: redis:7-alpine
+    container_name: yopal_express_redis
+    restart: always
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+
+volumes:
+  postgis_data:
+  redis_data:

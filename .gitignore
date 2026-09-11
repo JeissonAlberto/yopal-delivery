@@ -1,0 +1,27 @@
+# Dependencies
+node_modules/
+package-lock.json
+
+# Environment & Secrets
+.env
+.env.local
+.env.production
+
+# SQLite Databases & Temp files
+*.db-journal
+*.db-wal
+*.db-shm
+*.sqlite-journal
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+
+# OS Files
+.DS_Store
+Thumbs.db
+
+# Android build outputs
+android/app/build/
+android/.gradle/

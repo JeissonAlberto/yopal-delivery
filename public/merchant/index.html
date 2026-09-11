@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="es" class="scroll-smooth">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Portal Aliados & Restaurantes | LUPIN Express</title>
+  <link rel="stylesheet" href="/css/styles.css">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            brand: {
+              orange: '#ea580c',
+              'orange-hover': '#c2410c',
+              emerald: '#10b981',
+              'emerald-hover': '#059669',
+            }
+          }
+        }
+      }
+    }
+  </script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <script src="/socket.io/socket.io.js"></script>
+  <script src="/js/theme.js"></script>
+  <script src="/js/auth.js"></script>
+  <script>document.addEventListener('DOMContentLoaded', () => { lupinAuthCheck(['superadmin', 'merchant_admin'], false); });</script>
+</head>
+<body class="bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 flex flex-col min-h-screen transition-colors duration-200">
+
+  <!-- Header -->
+  <header class="bg-white/90 dark:bg-slate-900/90 border-b border-slate-200 dark:border-slate-800 sticky top-0 z-50 backdrop-blur-md transition-colors duration-200">
+    <div class="px-6 py-3.5 flex items-center justify-between">
+      <div class="flex items-center gap-4">
+        <a href="/" class="flex items-center gap-2 text-orange-600 hover:text-orange-700 font-bold text-sm">
+          <i class="fa-solid fa-arrow-left"></i> Portales
+        </a>
+        <div class="h-5 w-px bg-slate-200 dark:bg-slate-700"></div>
+        <div class="flex items-center gap-3">
+          <div class="w-9 h-9 rounded-xl bg-orange-500/10 text-orange-600 flex items-center justify-center font-bold text-lg">
+            <i class="fa-solid fa-utensils"></i>
+          </div>
+          <div>
+            <div class="flex items-center gap-2">
+              <select id="merchant-selector" onchange="changeMerchant()" class="bg-slate-100 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 text-slate-900 dark:text-white font-bold text-sm rounded-lg px-2.5 py-1 focus:ring-2 focus:ring-orange-600 focus:outline-none">
+                <!-- Injected dynamically -->
+              </select>
+            </div>
+            <span id="merchant-category" class="text-xs text-slate-500 dark:text-slate-400">Restaurante Aliado • Yopal</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="flex items-center gap-3">
+        <!-- Modo Día / Modo Noche Toggle -->
+        <div id="theme-toggle-container"></div>
+
+        <!-- Store Open / Close Switch -->
+        <button id="store-status-btn" onclick="toggleStoreStatus()" class="flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-bold transition-all bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30 cursor-pointer">
+          <span class="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse"></span>
+          <span>TIENDA ABIERTA</span>
+        </button>
+
+        <!-- Sound Alert Test -->
+        <button onclick="playOrderBell()" class="px-3 py-1.5 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 text-xs font-semibold rounded-lg border border-slate-300 dark:border-slate-700 flex items-center gap-1.5 cursor-pointer">
+          <i class="fa-solid fa-volume-high text-orange-600"></i> Probar Timbre
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- Navigation Tabs -->
+  <div class="px-6 border-b border-slate-800 bg-slate-800/40 flex gap-6 text-sm font-semibold">
+    <button onclick="switchTab('kanban')" id="tab-btn-kanban" class="py-3 border-b-2 border-emerald-500 text-emerald-400 flex items-center gap-2 cursor-pointer">
+      <i class="fa-solid fa-fire-burner"></i> Comandas & Cocina en Vivo
+    </button>
+    <button onclick="switchTab('catalog')" id="tab-btn-catalog" class="py-3 border-b-2 border-transparent text-slate-400 hover:text-slate-200 flex items-center gap-2 cursor-pointer">
+      <i class="fa-solid fa-book-open"></i> Menú & Platos
+    </button>
+    <button onclick="switchTab('reputation')" id="tab-btn-reputation" class="py-3 border-b-2 border-transparent text-slate-400 hover:text-slate-200 flex items-center gap-2 cursor-pointer">
+      <i class="fa-solid fa-star text-amber-400"></i> Reputación & Críticas
+    </button>
+  </div>
+
+  <!-- Content Sections -->
+  <main class="flex-1 p-6">
+    
+    <!-- Tab 1: Kitchen Kanban -->
+    <div id="tab-kanban" class="space-y-6">
+      
+      <!-- Metrics Bar -->
+      <div class="grid grid-cols-1 sm:grid-cols-4 gap-4">
+        <div class="bg-slate-800/60 border border-slate-700/60 rounded-xl p-3 flex items-center justify-between">
+          <span class="text-xs text-slate-400">En Preparación</span>
+          <span id="metric-prep" class="text-lg font-black text-amber-400">0</span>
+        </div>
+        <div class="bg-white dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700/60 rounded-xl p-3 flex items-center justify-between">
+          <span class="text-xs text-slate-500 dark:text-slate-400">Listos p/ Domiciliario</span>
+          <span id="metric-ready" class="text-lg font-black text-orange-600 dark:text-orange-400">0</span>
+        </div>
+        <div class="bg-slate-800/60 border border-slate-700/60 rounded-xl p-3 flex items-center justify-between">
+          <span class="text-xs text-slate-400">Ventas Hoy</span>
+          <span id="metric-sales" class="text-lg font-black text-emerald-400">$0</span>
+        </div>
+        <div class="bg-slate-800/60 border border-slate-700/60 rounded-xl p-3 flex items-center justify-between">
+          <span class="text-xs text-slate-400">Calificación</span>
+          <span id="metric-rating" class="text-lg font-black text-yellow-400">★ 4.9</span>
+        </div>
+      </div>
+
+      <!-- Kanban 4 Columns -->
+      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5 items-start">
+        
+        <!-- Col 1: Nuevos por Confirmar -->
+        <div class="bg-slate-800/50 border border-amber-500/30 rounded-2xl p-4 flex flex-col min-h-[480px]">
+          <div class="flex items-center justify-between mb-3 pb-2 border-b border-slate-700/60">
+            <span class="text-xs font-bold uppercase tracking-wider text-amber-400 flex items-center gap-1.5">
+              <i class="fa-solid fa-bell animate-bounce"></i> 1. Nuevos Pedidos
+            </span>
+            <span id="count-col-new" class="px-2 py-0.5 bg-amber-500/20 text-amber-400 text-xs font-bold rounded-full">0</span>
+          </div>
+          <div id="col-new" class="space-y-3 flex-1 overflow-y-auto max-h-[600px]"></div>
+        </div>
+
+        <!-- Col 2: En Cocina / Preparando -->
+        <div class="bg-white dark:bg-slate-800/50 border border-orange-500/30 rounded-2xl p-4 flex flex-col min-h-[480px]">
+          <div class="flex items-center justify-between mb-3 pb-2 border-b border-slate-100 dark:border-slate-700/60">
+            <span class="text-xs font-bold uppercase tracking-wider text-orange-600 dark:text-orange-400 flex items-center gap-1.5">
+              <i class="fa-solid fa-fire"></i> 2. En Cocina
+            </span>
+            <span id="count-col-prep" class="px-2 py-0.5 bg-orange-500/20 text-orange-600 dark:text-orange-400 text-xs font-bold rounded-full">0</span>
+          </div>
+          <div id="col-prep" class="space-y-3 flex-1 overflow-y-auto max-h-[600px]"></div>
+        </div>
+
+        <!-- Col 3: Listo / Esperando Repartidor -->
+        <div class="bg-white dark:bg-slate-800/50 border border-emerald-500/30 rounded-2xl p-4 flex flex-col min-h-[480px]">
+          <div class="flex items-center justify-between mb-3 pb-2 border-b border-slate-100 dark:border-slate-700/60">
+            <span class="text-xs font-bold uppercase tracking-wider text-emerald-600 dark:text-emerald-400 flex items-center gap-1.5">
+              <i class="fa-solid fa-box-archive"></i> 3. Listo / Despacho
+            </span>
+            <span id="count-col-ready" class="px-2 py-0.5 bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 text-xs font-bold rounded-full">0</span>
+          </div>
+          <div id="col-ready" class="space-y-3 flex-1 overflow-y-auto max-h-[600px]"></div>
+        </div>
+
+        <!-- Col 4: En Ruta / Entregados -->
+        <div class="bg-slate-800/50 border border-emerald-500/30 rounded-2xl p-4 flex flex-col min-h-[480px]">
+          <div class="flex items-center justify-between mb-3 pb-2 border-b border-slate-700/60">
+            <span class="text-xs font-bold uppercase tracking-wider text-emerald-400 flex items-center gap-1.5">
+              <i class="fa-solid fa-circle-check"></i> 4. En Ruta / Finalizado
+            </span>
+            <span id="count-col-done" class="px-2 py-0.5 bg-emerald-500/20 text-emerald-400 text-xs font-bold rounded-full">0</span>
+          </div>
+          <div id="col-done" class="space-y-3 flex-1 overflow-y-auto max-h-[600px]"></div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- Tab 2: Catalog & Dishes -->
+    <div id="tab-catalog" class="hidden space-y-6">
+      <div class="flex items-center justify-between">
+        <h2 class="text-lg font-bold text-slate-900 dark:text-white">Catálogo de Productos del Comercio</h2>
+      </div>
+      <div id="catalog-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"></div>
+    </div>
+
+    <!-- Tab 3: Reputation & Constructive Reviews -->
+    <div id="tab-reputation" class="hidden space-y-6">
+      <div class="flex items-center justify-between">
+        <div>
+          <h2 class="text-lg font-black text-slate-900 dark:text-white">Reputación y Opiniones de Clientes</h2>
+          <p class="text-xs text-slate-500 dark:text-slate-400">Puntaje estadístico Bayesiano y retroalimentación constructiva</p>
+        </div>
+      </div>
+
+      <!-- Bayesian KPI Box -->
+      <div id="merchant-rep-kpi" class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        <!-- Injected dynamically -->
+      </div>
+
+      <!-- Reviews and Replies List -->
+      <div id="merchant-reviews-container" class="space-y-4">
+        <!-- Injected dynamically -->
+      </div>
+    </div>
+
+  </main>
+
+  <footer class="border-t border-slate-800 py-6 text-center text-xs text-slate-500 bg-slate-900/60 mt-auto">
+    <p>LUPIN Express © 2026 • Desarrollado por <strong>Ing. Jeisson Alberto Sarmiento</strong> • Yopal, Casanare, Colombia.</p>
+  </footer>
+
+  <script src="/merchant/app.js"></script>
+</body>
+</html>

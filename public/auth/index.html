@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+<html lang="es" class="scroll-smooth">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Iniciar Sesión | LUPIN Express</title>
+  <link rel="manifest" href="/manifest.json">
+  <meta name="theme-color" content="#ea580c">
+  <link rel="icon" type="image/png" href="/assets/logo.png">
+  <link rel="stylesheet" href="/css/styles.css?v=2.5.0">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            brand: {
+              orange: '#ea580c',
+              'orange-hover': '#c2410c',
+              emerald: '#10b981',
+              'emerald-hover': '#059669',
+            }
+          }
+        }
+      }
+    }
+  </script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <script src="/js/theme.js?v=2.5.0"></script>
+</head>
+<body class="bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 min-h-screen flex flex-col transition-colors duration-200">
+
+  <!-- Header with Theme Toggle -->
+  <header class="p-4 flex items-center justify-between max-w-md w-full mx-auto relative z-20">
+    <a href="/" class="text-xs font-bold text-slate-500 dark:text-slate-400 hover:text-orange-600 flex items-center gap-1.5 transition-colors">
+      <i class="fa-solid fa-arrow-left"></i> Inicio
+    </a>
+    <div id="theme-toggle-container"></div>
+  </header>
+
+  <div class="flex-1 flex flex-col items-center justify-center px-4 py-4 relative z-10">
+
+    <!-- Logo & Brand -->
+    <div class="text-center mb-6">
+      <a href="/" class="inline-flex items-center gap-3 group">
+        <img src="/assets/logo.png" alt="LUPIN Express" class="w-14 h-14 rounded-2xl object-cover shadow-lg shadow-orange-600/30 group-hover:scale-105 transition-transform border-2 border-orange-500/40">
+        <div class="text-left">
+          <span class="text-2xl font-black tracking-tight text-slate-900 dark:text-white block">LUPIN <span class="text-orange-600">EXPRESS</span></span>
+          <span class="text-[11px] text-slate-500 dark:text-slate-400 font-medium">Plataforma de Delivery • Yopal, Casanare</span>
+        </div>
+      </a>
+    </div>
+
+    <!-- STEP 1: Role Selection -->
+    <div id="step-role" class="w-full max-w-md space-y-4">
+      <div class="text-center mb-6">
+        <h1 class="text-2xl font-black text-slate-900 dark:text-white">¿Quién eres?</h1>
+        <p class="text-xs text-slate-500 dark:text-slate-400 mt-1">Selecciona tu perfil para ingresar</p>
+      </div>
+
+      <!-- Client Card (Orange) -->
+      <button onclick="selectRole('client')" class="w-full p-5 bg-white dark:bg-slate-900/90 border border-slate-200 dark:border-slate-800 hover:border-orange-600 rounded-3xl flex items-center gap-4 transition-all duration-200 hover:shadow-lg hover:shadow-orange-600/10 group cursor-pointer text-left">
+        <div class="w-12 h-12 rounded-2xl bg-orange-500/10 text-orange-600 flex items-center justify-center text-xl flex-shrink-0 group-hover:bg-orange-600 group-hover:text-white transition-all shadow-sm">
+          <i class="fa-solid fa-bag-shopping"></i>
+        </div>
+        <div>
+          <h3 class="font-bold text-slate-900 dark:text-white text-base group-hover:text-orange-600 transition-colors">Soy Cliente</h3>
+          <p class="text-xs text-slate-500 dark:text-slate-400 mt-0.5">Pido comida, farmacia, supermercado y mandados en Yopal</p>
+        </div>
+        <i class="fa-solid fa-chevron-right text-slate-400 group-hover:text-orange-600 ml-auto transition-all group-hover:translate-x-1 text-xs"></i>
+      </button>
+
+      <!-- Driver Card (Emerald) -->
+      <button onclick="selectRole('driver')" class="w-full p-5 bg-white dark:bg-slate-900/90 border border-slate-200 dark:border-slate-800 hover:border-emerald-600 rounded-3xl flex items-center gap-4 transition-all duration-200 hover:shadow-lg hover:shadow-emerald-600/10 group cursor-pointer text-left">
+        <div class="w-12 h-12 rounded-2xl bg-emerald-500/10 text-emerald-600 flex items-center justify-center text-xl flex-shrink-0 group-hover:bg-emerald-600 group-hover:text-white transition-all shadow-sm">
+          <i class="fa-solid fa-helmet-safety"></i>
+        </div>
+        <div>
+          <h3 class="font-bold text-slate-900 dark:text-white text-base group-hover:text-emerald-600 transition-colors">Soy Repartidor</h3>
+          <p class="text-xs text-slate-500 dark:text-slate-400 mt-0.5">Gano dinero en moto llevando pedidos por Yopal y zona rural</p>
+        </div>
+        <i class="fa-solid fa-chevron-right text-slate-400 group-hover:text-emerald-600 ml-auto transition-all group-hover:translate-x-1 text-xs"></i>
+      </button>
+
+      <!-- Admin / Merchant Card (Neutral/Orange) -->
+      <button onclick="selectRole('superadmin')" class="w-full p-5 bg-white dark:bg-slate-900/90 border border-slate-200 dark:border-slate-800 hover:border-orange-600 rounded-3xl flex items-center gap-4 transition-all duration-200 hover:shadow-lg hover:shadow-orange-600/10 group cursor-pointer text-left">
+        <div class="w-12 h-12 rounded-2xl bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 flex items-center justify-center text-xl flex-shrink-0 group-hover:bg-orange-600 group-hover:text-white transition-all shadow-sm">
+          <i class="fa-solid fa-shield-halved"></i>
+        </div>
+        <div>
+          <h3 class="font-bold text-slate-900 dark:text-white text-base group-hover:text-orange-600 transition-colors">Administrador / Aliado</h3>
+          <p class="text-xs text-slate-500 dark:text-slate-400 mt-0.5">Gestiono restaurantes, logística o administro la plataforma</p>
+        </div>
+        <i class="fa-solid fa-chevron-right text-slate-400 group-hover:text-orange-600 ml-auto transition-all group-hover:translate-x-1 text-xs"></i>
+      </button>
+
+      <!-- Quick 1-Touch Demo Logins for Fast Access -->
+      <div class="p-4 rounded-3xl bg-slate-100 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800 space-y-2.5">
+        <div class="flex items-center justify-between">
+          <span class="text-[10px] uppercase font-black tracking-wider text-slate-500 dark:text-slate-400 flex items-center gap-1.5">
+            <i class="fa-solid fa-bolt text-amber-500"></i> Acceso Rápido 1-Toque
+          </span>
+          <span class="text-[9px] font-bold text-emerald-600 bg-emerald-50 dark:bg-emerald-950/40 px-2 py-0.5 rounded-full border border-emerald-200 dark:border-emerald-800">Auto-login</span>
+        </div>
+        <div class="grid grid-cols-2 gap-2 text-[11px] font-bold">
+          <button onclick="quickLogin('cliente@lupin.com', 'yopal2026')" class="p-2.5 rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 hover:border-orange-600 text-slate-800 dark:text-slate-200 flex items-center gap-2 cursor-pointer transition-all shadow-sm">
+            <i class="fa-solid fa-bag-shopping text-orange-600"></i> Cliente
+          </button>
+          <button onclick="quickLogin('repartidor@lupin.com', 'yopal2026')" class="p-2.5 rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 hover:border-emerald-600 text-slate-800 dark:text-slate-200 flex items-center gap-2 cursor-pointer transition-all shadow-sm">
+            <i class="fa-solid fa-motorcycle text-emerald-600"></i> Repartidor
+          </button>
+          <button onclick="quickLogin('mamona@lupin.com', 'yopal2026')" class="p-2.5 rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 hover:border-orange-600 text-slate-800 dark:text-slate-200 flex items-center gap-2 cursor-pointer transition-all shadow-sm">
+            <i class="fa-solid fa-utensils text-orange-600"></i> Mamona Aliado
+          </button>
+          <button onclick="quickLogin('admin@lupin.com', 'admin123')" class="p-2.5 rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 hover:border-emerald-600 text-slate-800 dark:text-slate-200 flex items-center gap-2 cursor-pointer transition-all shadow-sm">
+            <i class="fa-solid fa-shield-halved text-emerald-600"></i> SuperAdmin
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- STEP 2: Login / Register Form -->
+    <div id="step-form" class="w-full max-w-md space-y-5 hidden">
+
+      <!-- Back Button -->
+      <button onclick="backToRoles()" class="inline-flex items-center gap-2 text-xs font-bold text-slate-500 dark:text-slate-400 hover:text-orange-600 transition-colors mb-1">
+        <i class="fa-solid fa-arrow-left"></i> Cambiar perfil
+      </button>
+
+      <!-- Role Header -->
+      <div class="flex items-center gap-3">
+        <div id="form-role-icon" class="w-10 h-10 rounded-2xl flex items-center justify-center text-lg font-bold shadow-sm"></div>
+        <div>
+          <span id="form-role-label" class="text-[10px] font-black uppercase tracking-wider block text-orange-600"></span>
+          <h2 id="form-title" class="text-xl font-black text-slate-900 dark:text-white"></h2>
+        </div>
+      </div>
+
+      <!-- Toggle Login / Register -->
+      <div class="flex gap-1 p-1 bg-slate-200/70 dark:bg-slate-800/80 rounded-2xl">
+        <button id="btn-tab-login" onclick="switchAuthMode('login')" class="flex-1 py-2.5 rounded-xl text-xs font-bold transition-all bg-orange-600 text-white shadow-md shadow-orange-600/20">
+          Iniciar Sesión
+        </button>
+        <button id="btn-tab-register" onclick="switchAuthMode('register')" class="flex-1 py-2.5 rounded-xl text-xs font-bold transition-all text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white">
+          Registrarse
+        </button>
+      </div>
+
+      <!-- Error Message -->
+      <div id="auth-error" class="hidden p-3.5 bg-rose-500/10 border border-rose-500/30 rounded-2xl text-xs font-bold text-rose-600 dark:text-rose-400"></div>
+
+      <!-- Login Form -->
+      <form id="form-login" onsubmit="handleLogin(event)" class="space-y-4">
+        <div class="space-y-1.5">
+          <label class="text-xs font-bold text-slate-700 dark:text-slate-300">Correo Electrónico</label>
+          <div class="relative">
+            <i class="fa-solid fa-envelope absolute left-4 top-3.5 text-slate-400 text-sm"></i>
+            <input type="email" id="login-email" required placeholder="tucorreo@yopal.com"
+              class="w-full pl-11 pr-4 py-3 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-2xl text-sm font-medium text-slate-900 dark:text-white focus:ring-2 focus:ring-orange-600 transition-all">
+          </div>
+        </div>
+
+        <div class="space-y-1.5">
+          <label class="text-xs font-bold text-slate-700 dark:text-slate-300">Contraseña</label>
+          <div class="relative">
+            <i class="fa-solid fa-lock absolute left-4 top-3.5 text-slate-400 text-sm"></i>
+            <input type="password" id="login-password" required placeholder="••••••••"
+              class="w-full pl-11 pr-4 py-3 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-2xl text-sm font-medium text-slate-900 dark:text-white focus:ring-2 focus:ring-orange-600 transition-all">
+          </div>
+        </div>
+
+        <button type="submit" id="btn-login" class="w-full py-3.5 bg-orange-600 hover:bg-orange-700 text-white font-black text-sm rounded-2xl shadow-xl shadow-orange-600/25 transition-all flex items-center justify-center gap-2 cursor-pointer">
+          <i class="fa-solid fa-right-to-bracket"></i> Iniciar Sesión
+        </button>
+
+        <!-- Quick Demo Accounts -->
+        <div class="p-3 bg-slate-100 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800 rounded-2xl text-center space-y-1">
+          <p class="text-[11px] font-bold text-slate-600 dark:text-slate-400">
+            <i class="fa-solid fa-circle-info text-orange-600"></i> Cuenta Demo:
+          </p>
+          <p class="text-[11px] text-slate-500 dark:text-slate-400">
+            <strong>Admin:</strong> admin@yopalexpress.com / admin123<br>
+            <strong>Cliente:</strong> ana@yopal.com / yopal2026<br>
+            <strong>Repartidor:</strong> carlos.driver@yopal.com / yopal2026
+          </p>
+        </div>
+      </form>
+
+      <!-- Register Form -->
+      <form id="form-register" onsubmit="handleRegister(event)" class="space-y-4 hidden">
+        <div class="space-y-1.5">
+          <label class="text-xs font-bold text-slate-700 dark:text-slate-300">Nombre Completo</label>
+          <div class="relative">
+            <i class="fa-solid fa-user absolute left-4 top-3.5 text-slate-400 text-sm"></i>
+            <input type="text" id="reg-name" required placeholder="Tu nombre completo"
+              class="w-full pl-11 pr-4 py-3 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-2xl text-sm font-medium text-slate-900 dark:text-white focus:ring-2 focus:ring-orange-600 transition-all">
+          </div>
+        </div>
+
+        <div class="space-y-1.5">
+          <label class="text-xs font-bold text-slate-700 dark:text-slate-300">Correo Electrónico</label>
+          <div class="relative">
+            <i class="fa-solid fa-envelope absolute left-4 top-3.5 text-slate-400 text-sm"></i>
+            <input type="email" id="reg-email" required placeholder="tucorreo@yopal.com"
+              class="w-full pl-11 pr-4 py-3 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-2xl text-sm font-medium text-slate-900 dark:text-white focus:ring-2 focus:ring-orange-600 transition-all">
+          </div>
+        </div>
+
+        <div class="space-y-1.5">
+          <label class="text-xs font-bold text-slate-700 dark:text-slate-300">Teléfono Móvil</label>
+          <div class="relative">
+            <i class="fa-solid fa-phone absolute left-4 top-3.5 text-slate-400 text-sm"></i>
+            <input type="tel" id="reg-phone" required placeholder="3XX XXX XXXX" inputmode="numeric"
+              class="w-full pl-11 pr-4 py-3 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-2xl text-sm font-medium text-slate-900 dark:text-white focus:ring-2 focus:ring-orange-600 transition-all">
+          </div>
+        </div>
+
+        <div class="space-y-1.5">
+          <label class="text-xs font-bold text-slate-700 dark:text-slate-300">Contraseña</label>
+          <div class="relative">
+            <i class="fa-solid fa-lock absolute left-4 top-3.5 text-slate-400 text-sm"></i>
+            <input type="password" id="reg-password" required minlength="6" placeholder="Mínimo 6 caracteres"
+              class="w-full pl-11 pr-4 py-3 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-2xl text-sm font-medium text-slate-900 dark:text-white focus:ring-2 focus:ring-orange-600 transition-all">
+          </div>
+        </div>
+
+        <!-- Driver-only fields -->
+        <div id="driver-fields" class="hidden space-y-4 pt-2 border-t border-slate-200 dark:border-slate-800">
+          <p class="text-[10px] font-black uppercase tracking-wider text-emerald-600 dark:text-emerald-400 flex items-center gap-1.5">
+            <i class="fa-solid fa-id-card"></i> Datos del Repartidor
+          </p>
+          <div class="grid grid-cols-2 gap-3">
+            <div class="space-y-1.5">
+              <label class="text-xs font-bold text-slate-700 dark:text-slate-300">Vehículo</label>
+              <select id="reg-vehicle" class="w-full px-3 py-3 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-2xl text-sm font-medium text-slate-900 dark:text-white focus:ring-2 focus:ring-emerald-600 transition-all">
+                <option value="moto">Moto</option>
+                <option value="bicicleta">Bicicleta</option>
+                <option value="carro">Carro</option>
+              </select>
+            </div>
+            <div class="space-y-1.5">
+              <label class="text-xs font-bold text-slate-700 dark:text-slate-300">Placa</label>
+              <input type="text" id="reg-plate" placeholder="ABC-123"
+                class="w-full px-3 py-3 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-2xl text-sm font-medium text-slate-900 dark:text-white uppercase focus:ring-2 focus:ring-emerald-600 transition-all">
+            </div>
+          </div>
+        </div>
+
+        <button type="submit" id="btn-register" class="w-full py-3.5 bg-emerald-600 hover:bg-emerald-700 text-white font-black text-sm rounded-2xl shadow-xl shadow-emerald-600/25 transition-all flex items-center justify-center gap-2 cursor-pointer">
+          <i class="fa-solid fa-user-plus"></i> Crear Mi Cuenta
+        </button>
+      </form>
+    </div>
+  </div>
+
+  <!-- Footer -->
+  <footer class="text-center py-5 text-[11px] text-slate-500 dark:text-slate-500 border-t border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950/80">
+    <p>LUPIN Express © 2026 • <strong>Ing. Jeisson Alberto Sarmiento</strong> • Yopal, Casanare, Colombia.</p>
+  </footer>
+
+  <script src="/auth/app.js"></script>
+</body>
+</html>

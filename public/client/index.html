@@ -1,0 +1,876 @@
+<!DOCTYPE html>
+<html lang="es" class="scroll-smooth">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>LUPIN Express | Pide Comida, Farmacia y Domicilios en Yopal</title>
+  <link rel="manifest" href="/manifest.json">
+  <meta name="theme-color" content="#ea580c">
+  <link rel="icon" type="image/png" href="/assets/logo.png">
+  <link rel="stylesheet" href="/css/styles.css?v=2.5.0">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            brand: {
+              orange: '#ea580c',
+              'orange-hover': '#c2410c',
+              emerald: '#10b981',
+              'emerald-hover': '#059669',
+            }
+          }
+        }
+      }
+    }
+  </script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script src="/socket.io/socket.io.js"></script>
+  <script src="/js/theme.js?v=2.5.0"></script>
+  <script src="/js/auth.js?v=2.5.0"></script>
+</head>
+<body class="bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 pb-24 sm:pb-8 transition-colors duration-200">
+
+  <!-- Mobile Top Bar & Location Selector -->
+  <header class="bg-white/95 dark:bg-slate-900/95 border-b border-slate-200 dark:border-slate-800 sticky top-0 z-40 backdrop-blur-md shadow-sm transition-colors duration-200">
+    <div class="max-w-4xl mx-auto px-4 py-3 flex items-center justify-between">
+      <div class="flex items-center gap-3">
+        <a href="/" class="text-orange-600 hover:text-orange-700 font-bold text-sm hidden sm:inline-flex items-center gap-1">
+          <i class="fa-solid fa-arrow-left"></i> Portales
+        </a>
+        <div class="h-4 w-px bg-slate-200 dark:bg-slate-700 hidden sm:block"></div>
+        <img src="/assets/logo.png" alt="LUPIN Express" class="w-9 h-9 rounded-xl object-cover shadow-sm border border-orange-500/40">
+        <button onclick="openLocationModal()" class="flex items-center gap-2 text-left hover:opacity-80 transition-opacity cursor-pointer">
+          <div class="w-8 h-8 rounded-full bg-orange-500/10 text-orange-600 flex items-center justify-center font-bold text-sm shadow-sm">
+            <i class="fa-solid fa-location-dot"></i>
+          </div>
+          <div>
+            <div class="flex items-center gap-1">
+              <span class="text-[10px] font-bold uppercase tracking-wider text-slate-400">Entregar en Yopal</span>
+              <i class="fa-solid fa-chevron-down text-[10px] text-slate-400"></i>
+            </div>
+            <p id="current-address-label" class="text-xs sm:text-sm font-bold text-slate-900 dark:text-white truncate max-w-[160px] sm:max-w-xs">
+              Calle 24 # 25-18, La Campiña
+            </p>
+          </div>
+        </button>
+      </div>
+
+      <div class="flex items-center gap-2.5">
+        <!-- Modo Día / Modo Noche Toggle -->
+        <div id="theme-toggle-container"></div>
+
+        <!-- Cart Trigger Button -->
+        <button onclick="openCartDrawer()" class="relative flex items-center gap-2 px-3.5 py-2 bg-orange-600 hover:bg-orange-700 text-white font-bold text-xs sm:text-sm rounded-xl shadow-md shadow-orange-600/20 transition-all cursor-pointer">
+          <i class="fa-solid fa-bag-shopping text-sm"></i>
+          <span class="hidden sm:inline">Canasta</span>
+          <span id="cart-badge-count" class="w-5 h-5 rounded-full bg-white text-orange-600 font-black text-[11px] flex items-center justify-center shadow">0</span>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Views Container -->
+  <main class="max-w-4xl mx-auto px-4 py-4 space-y-6">
+    
+    <!-- View 1: Home / Browse Feed -->
+    <div id="view-home" class="space-y-4">
+      
+      <!-- VIP Membership & Loyalty Status Bar (Ultra Visual) -->
+      <div class="bg-gradient-to-r from-amber-500/15 via-orange-500/15 to-emerald-500/15 border border-amber-500/30 rounded-2xl p-3 flex items-center justify-between shadow-sm">
+        <div class="flex items-center gap-2.5">
+          <div class="w-8 h-8 rounded-xl bg-gradient-to-tr from-amber-500 to-orange-600 text-white flex items-center justify-center font-black text-xs shadow-md shadow-orange-600/30">
+            <i class="fa-solid fa-crown"></i>
+          </div>
+          <div>
+            <div class="flex items-center gap-1.5">
+              <span class="text-xs font-black text-amber-700 dark:text-amber-400">Club LUPIN VIP Activo</span>
+              <span class="px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 text-[9px] font-black border border-emerald-500/30">4 Envíos Gratis</span>
+            </div>
+            <span class="text-[10px] text-slate-500 dark:text-slate-400 font-medium">Subsidio automático en compras > $25.000 COP</span>
+          </div>
+        </div>
+        <div class="text-right">
+          <span class="text-[10px] font-bold text-slate-400 block">Puntos LUPIN</span>
+          <span class="text-xs font-black text-emerald-600 dark:text-emerald-400 flex items-center gap-1 justify-end">
+            <i class="fa-solid fa-gem text-amber-500"></i> 150 Pts
+          </span>
+        </div>
+      </div>
+
+      <!-- Historias Llaneras / Promos Carousel -->
+      <div class="flex gap-4 overflow-x-auto pb-2 scrollbar-none">
+        <div onclick="filterCategory('Carne a la Llanera')" class="flex flex-col items-center gap-1 cursor-pointer flex-shrink-0 group">
+          <div class="w-16 h-16 rounded-full p-0.5 border-2 border-orange-600 shadow-md group-hover:scale-105 transition-transform overflow-hidden bg-white dark:bg-slate-900">
+            <img src="https://images.unsplash.com/photo-1544025162-d76694265947?w=150" class="w-full h-full object-cover rounded-full">
+          </div>
+          <span class="text-[11px] font-bold text-slate-800 dark:text-slate-200">Mamona</span>
+        </div>
+
+        <div onclick="filterCategory('Comida Rápida')" class="flex flex-col items-center gap-1 cursor-pointer flex-shrink-0 group">
+          <div class="w-16 h-16 rounded-full p-0.5 border-2 border-orange-600 shadow-md group-hover:scale-105 transition-transform overflow-hidden bg-white dark:bg-slate-900">
+            <img src="https://images.unsplash.com/photo-1568901346375-23c9450c58cd?w=150" class="w-full h-full object-cover rounded-full">
+          </div>
+          <span class="text-[11px] font-bold text-slate-800 dark:text-slate-200">Burgers</span>
+        </div>
+
+        <div onclick="filterCategory('Panadería & Café')" class="flex flex-col items-center gap-1 cursor-pointer flex-shrink-0 group">
+          <div class="w-16 h-16 rounded-full p-0.5 border-2 border-orange-600 shadow-md group-hover:scale-105 transition-transform overflow-hidden bg-white dark:bg-slate-900">
+            <img src="https://images.unsplash.com/photo-1509440159596-0249088772ff?w=150" class="w-full h-full object-cover rounded-full">
+          </div>
+          <span class="text-[11px] font-bold text-slate-800 dark:text-slate-200">Pan Arroz</span>
+        </div>
+
+        <div onclick="openErrandsModal()" class="flex flex-col items-center gap-1 cursor-pointer flex-shrink-0 group">
+          <div class="w-16 h-16 rounded-full p-0.5 border-2 border-orange-600 shadow-md group-hover:scale-105 transition-transform flex items-center justify-center bg-orange-600 text-white text-xl">
+            <i class="fa-solid fa-bolt"></i>
+          </div>
+          <span class="text-[11px] font-bold text-orange-600">Mandados</span>
+        </div>
+
+        <div onclick="filterCategory('Licores')" class="flex flex-col items-center gap-1 cursor-pointer flex-shrink-0 group">
+          <div class="w-16 h-16 rounded-full p-0.5 border-2 border-orange-600 shadow-md group-hover:scale-105 transition-transform overflow-hidden bg-white dark:bg-slate-900">
+            <img src="https://images.unsplash.com/photo-1527061011665-3652c757a4d4?w=150" class="w-full h-full object-cover rounded-full">
+          </div>
+          <span class="text-[11px] font-bold text-slate-800 dark:text-slate-200">Licores 24h</span>
+        </div>
+
+        <div onclick="filterCategory('Farmacia')" class="flex flex-col items-center gap-1 cursor-pointer flex-shrink-0 group">
+          <div class="w-16 h-16 rounded-full p-0.5 border-2 border-orange-600 shadow-md group-hover:scale-105 transition-transform overflow-hidden bg-white dark:bg-slate-900">
+            <img src="https://images.unsplash.com/photo-1586015555751-63bb77f4322a?w=150" class="w-full h-full object-cover rounded-full">
+          </div>
+          <span class="text-[11px] font-bold text-slate-800 dark:text-slate-200">Farmacia</span>
+        </div>
+      </div>
+
+      <!-- Hero Flash Banner -->
+      <div class="bg-gradient-to-r from-orange-600 to-amber-600 rounded-3xl p-5 text-white shadow-lg relative overflow-hidden flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+        <div class="space-y-1 relative z-10">
+          <span class="px-2.5 py-0.5 rounded-full bg-white/20 text-white font-black text-[10px] tracking-wider uppercase border border-white/20">
+            🔥 Promoción del Día en Yopal
+          </span>
+          <h2 class="text-xl sm:text-2xl font-black tracking-tight leading-tight">10% OFF en Carne Llanera</h2>
+          <p class="text-xs text-orange-100 font-medium">Usa el cupón <strong class="underline font-black">LUPINLLANERO</strong> en tu compra.</p>
+        </div>
+        <button onclick="filterCategory('Carne a la Llanera')" class="px-4 py-2.5 bg-white text-orange-600 hover:bg-orange-50 font-black text-xs rounded-xl shadow-md cursor-pointer transition-all">
+          Pedir Ahora
+        </button>
+      </div>
+
+      <!-- Quick Neighborhood Selection Chips (1-Touch Intuitive) -->
+      <div class="space-y-1">
+        <span class="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Barrios de Yopal (Toca para seleccionar rápido):</span>
+        <div class="flex gap-2 overflow-x-auto pb-1 scrollbar-none text-xs" id="neighborhood-chips">
+          <button onclick="setQuickNeighborhood('Calle 24 # 25-18, Barrio La Campiña', 5.3480, -72.4010)" class="neigh-btn active px-3.5 py-1.5 rounded-full bg-orange-600 text-white font-bold whitespace-nowrap cursor-pointer shadow-sm transition-all">
+            📍 La Campiña
+          </button>
+          <button onclick="setQuickNeighborhood('Carrera 20 # 10-30, Parque Santander', 5.3377, -72.3958)" class="neigh-btn px-3.5 py-1.5 rounded-full bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 font-bold border border-slate-200 dark:border-slate-800 whitespace-nowrap cursor-pointer hover:border-orange-600 transition-all">
+            📍 Centro / Santander
+          </button>
+          <button onclick="setQuickNeighborhood('Carrera 29 # 15-20, Unicentro', 5.3475, -72.4045)" class="neigh-btn px-3.5 py-1.5 rounded-full bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 font-bold border border-slate-200 dark:border-slate-800 whitespace-nowrap cursor-pointer hover:border-orange-600 transition-all">
+            📍 Unicentro / Norte
+          </button>
+          <button onclick="setQuickNeighborhood('Calle 30 # 21-50, Llano Lindo', 5.3140, -72.3995)" class="neigh-btn px-3.5 py-1.5 rounded-full bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 font-bold border border-slate-200 dark:border-slate-800 whitespace-nowrap cursor-pointer hover:border-orange-600 transition-all">
+            📍 Llano Lindo / Sur
+          </button>
+          <button onclick="setQuickNeighborhood('Vía Sirivana Km 1.5, Yopal', 5.3180, -72.3800)" class="neigh-btn px-3.5 py-1.5 rounded-full bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 font-bold border border-slate-200 dark:border-slate-800 whitespace-nowrap cursor-pointer hover:border-orange-600 transition-all">
+            📍 Sirivana / Vereda
+          </button>
+        </div>
+      </div>
+
+      <!-- Search Bar -->
+      <div class="relative">
+        <i class="fa-solid fa-magnifying-glass absolute left-4 top-3.5 text-slate-400"></i>
+        <input type="text" id="search-input" onkeyup="handleSearch()" placeholder="¿Qué se te antoja hoy en Yopal? (Mamona, hamburguesa, buñuelos...)" 
+               class="w-full pl-11 pr-4 py-3 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl text-sm font-medium text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-orange-600 shadow-sm transition-all">
+      </div>
+
+      <!-- Categories Pills -->
+      <div class="flex gap-2 overflow-x-auto pb-1 scrollbar-none text-xs font-bold" id="category-pills">
+        <button onclick="filterCategory('Todos')" class="cat-pill active px-4 py-2 rounded-full bg-orange-600 text-white shadow-md shadow-orange-600/20 whitespace-nowrap transition-all cursor-pointer">
+          Todos
+        </button>
+        <button onclick="filterCategory('Carne a la Llanera')" class="cat-pill px-4 py-2 rounded-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300 hover:border-orange-600 whitespace-nowrap transition-all cursor-pointer">
+          🥩 Carne a la Llanera
+        </button>
+        <button onclick="filterCategory('Comida Rápida')" class="cat-pill px-4 py-2 rounded-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300 hover:border-orange-600 whitespace-nowrap transition-all cursor-pointer">
+          🍔 Comida Rápida
+        </button>
+        <button onclick="filterCategory('Panadería & Café')" class="cat-pill px-4 py-2 rounded-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300 hover:border-orange-600 whitespace-nowrap transition-all cursor-pointer">
+          🥖 Panadería & Pan de Arroz
+        </button>
+        <button onclick="filterCategory('Farmacia')" class="cat-pill px-4 py-2 rounded-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300 hover:border-orange-600 whitespace-nowrap transition-all cursor-pointer">
+          💊 Farmacia 24h
+        </button>
+        <button onclick="filterCategory('Licores')" class="cat-pill px-4 py-2 rounded-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300 hover:border-orange-600 whitespace-nowrap transition-all cursor-pointer">
+          🍾 Licores Fríos
+        </button>
+      </div>
+
+      <!-- Social Proof Ticker -->
+      <div class="bg-orange-500/10 dark:bg-orange-950/20 border border-orange-500/20 rounded-2xl p-3 flex items-center gap-3 text-xs text-orange-900 dark:text-orange-200 shadow-sm">
+        <span class="flex-shrink-0 w-7 h-7 rounded-xl bg-orange-600 text-white flex items-center justify-center font-bold text-xs shadow-sm">
+          <i class="fa-solid fa-fire animate-pulse"></i>
+        </span>
+        <div class="overflow-hidden">
+          <p class="font-bold truncate"><span id="social-proof-text">🔥 28 pedidos entregados hoy en Yopal • Mamona & Tradición es el más pedido ahora</span></p>
+        </div>
+      </div>
+
+      <!-- Active Order Floating Banner (if exists) -->
+      <div id="active-order-banner" class="hidden bg-emerald-600 rounded-2xl p-4 text-white shadow-lg flex items-center justify-between cursor-pointer" onclick="showTrackingView()">
+        <div class="flex items-center gap-3">
+          <div class="w-10 h-10 rounded-xl bg-white/20 flex items-center justify-center text-xl font-bold">
+            <i class="fa-solid fa-motorcycle animate-bounce"></i>
+          </div>
+          <div>
+            <span class="text-[10px] font-extrabold uppercase tracking-wider text-emerald-100">Tienes un pedido en curso</span>
+            <p id="banner-order-status" class="text-sm font-bold">En camino con tu repartidor...</p>
+          </div>
+        </div>
+        <button class="px-3 py-1.5 bg-white text-emerald-600 font-bold text-xs rounded-xl shadow">Ver Mapa</button>
+      </div>
+
+      <!-- Merchants Grid -->
+      <div>
+        <div class="flex items-center justify-between mb-4">
+          <h2 class="text-base font-extrabold text-slate-900 dark:text-white">Restaurantes & Comercios en Yopal</h2>
+          <span id="merchants-count" class="text-xs text-slate-500 dark:text-slate-400">Cargando...</span>
+        </div>
+        <div id="merchants-grid" class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <!-- Injected dynamically -->
+        </div>
+      </div>
+
+    </div>
+
+    <!-- View 2: Merchant Detail & Menu -->
+    <div id="view-merchant" class="hidden space-y-5">
+      <button onclick="showHomeView()" class="inline-flex items-center gap-2 text-xs font-bold text-slate-600 dark:text-slate-400 hover:text-orange-600 py-1 cursor-pointer">
+        <i class="fa-solid fa-arrow-left"></i> Volver a restaurantes
+      </button>
+
+      <!-- Merchant Header Banner -->
+      <div class="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 overflow-hidden shadow-sm">
+        <div class="h-44 sm:h-56 bg-slate-200 dark:bg-slate-800 relative">
+          <img id="m-detail-banner" src="" alt="" class="w-full h-full object-cover">
+        </div>
+        <div class="p-5">
+          <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div>
+              <span id="m-detail-category" class="text-xs font-bold text-orange-600 uppercase tracking-wider"></span>
+              <h1 id="m-detail-name" class="text-2xl font-black text-slate-900 dark:text-white mt-0.5"></h1>
+              <p id="m-detail-address" class="text-xs text-slate-500 dark:text-slate-400 mt-1 flex items-center gap-1">
+                <i class="fa-solid fa-location-dot text-orange-600"></i> <span></span>
+              </p>
+            </div>
+            <div class="flex items-center gap-3">
+              <div class="px-3 py-1.5 bg-emerald-50 dark:bg-emerald-950/40 rounded-xl border border-emerald-200 dark:border-emerald-800 text-emerald-700 dark:text-emerald-400 text-center">
+                <span class="block text-[10px] uppercase font-bold">Tiempo Est.</span>
+                <span id="m-detail-time" class="text-xs font-black">20-30 min</span>
+              </div>
+              <div class="px-3 py-1.5 bg-orange-50 dark:bg-orange-950/40 rounded-xl border border-orange-200 dark:border-orange-800 text-orange-700 dark:text-orange-400 text-center">
+                <span class="block text-[10px] uppercase font-bold">Envío en Yopal</span>
+                <span id="m-detail-fare" class="text-xs font-black">$4.000</span>
+              </div>
+            </div>
+          </div>
+          <p id="m-detail-desc" class="text-xs text-slate-600 dark:text-slate-400 mt-3 pt-3 border-t border-slate-100 dark:border-slate-800"></p>
+        </div>
+      </div>
+
+      <!-- Menu Products Grid -->
+      <div>
+        <h2 class="text-base font-extrabold text-slate-900 dark:text-white mb-4">Platos Disponibles</h2>
+        <div id="m-products-grid" class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <!-- Injected dynamically -->
+        </div>
+      </div>
+
+      <!-- Reviews & Constructive Feedback Section (Bayesian Score + Verified Purchases) -->
+      <div class="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 p-5 shadow-sm space-y-4">
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-slate-100 dark:border-slate-800">
+          <div>
+            <div class="flex items-center gap-2">
+              <span class="w-2.5 h-2.5 rounded-full bg-emerald-500"></span>
+              <h3 class="text-base font-black text-slate-900 dark:text-white">Reputación y Críticas Constructivas</h3>
+            </div>
+            <span class="text-[11px] text-slate-500 dark:text-slate-400">Puntaje Bayesiano transparente ponderado por compras verificadas</span>
+          </div>
+          <button onclick="openReviewModal()" class="px-3.5 py-2 bg-orange-600 hover:bg-orange-700 text-white font-bold text-xs rounded-xl shadow-md shadow-orange-600/20 flex items-center justify-center gap-1.5 cursor-pointer self-start sm:self-auto transition-all">
+            <i class="fa-solid fa-pen-to-square"></i> Dar Crítica Constructiva (+50 Pts)
+          </button>
+        </div>
+
+        <!-- Rating Summary & Star Distribution -->
+        <div id="m-reviews-summary" class="p-4 rounded-2xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700/60 grid grid-cols-1 sm:grid-cols-3 gap-4 items-center">
+          <!-- Injected dynamically -->
+        </div>
+
+        <!-- Reviews List -->
+        <div id="m-reviews-list" class="space-y-3 pt-2">
+          <!-- Injected dynamically -->
+        </div>
+      </div>
+    </div>
+
+    <!-- View 3: Live Order Tracking Screen -->
+    <div id="view-tracking" class="hidden space-y-5">
+      <div class="flex items-center justify-between">
+        <button onclick="showHomeView()" class="inline-flex items-center gap-2 text-xs font-bold text-slate-600 dark:text-slate-400 hover:text-orange-600 cursor-pointer">
+          <i class="fa-solid fa-arrow-left"></i> Volver a inicio
+        </button>
+        <span id="track-order-number" class="text-xs font-black text-slate-900 dark:text-white bg-slate-100 dark:bg-slate-800 px-3 py-1 rounded-full border border-slate-200 dark:border-slate-700">#YPL-2026-0001</span>
+      </div>
+
+      <!-- Live GPS Tracking Map -->
+      <div class="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 p-4 shadow-sm space-y-3">
+        <div class="flex items-center justify-between">
+          <div class="flex items-center gap-2">
+            <div class="w-3 h-3 rounded-full bg-emerald-500 animate-ping"></div>
+            <span class="text-xs font-bold uppercase tracking-wider text-slate-600 dark:text-slate-300">Rastreo GPS en Vivo (Yopal)</span>
+          </div>
+          <span id="track-eta" class="text-xs font-bold text-orange-600 bg-orange-50 dark:bg-orange-950/40 px-2.5 py-0.5 rounded-full border border-orange-200 dark:border-orange-800">Llegada est: ~15 min</span>
+        </div>
+        <div id="tracking-map" class="w-full h-64 sm:h-80 rounded-2xl border border-slate-200 dark:border-slate-800 z-10"></div>
+      </div>
+
+      <!-- Status Progress Bar & OTP Box -->
+      <div class="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 p-5 shadow-sm space-y-4">
+        <div class="flex items-center justify-between">
+          <div>
+            <span class="text-[10px] uppercase font-black text-orange-600 tracking-wider">Estado del pedido</span>
+            <h3 id="track-status-title" class="text-lg font-black text-slate-900 dark:text-white">En camino a tu dirección</h3>
+          </div>
+          
+          <!-- OTP Code for Safe Delivery in Yopal -->
+          <div class="text-right">
+            <span class="text-[10px] uppercase font-bold text-slate-400 block">PIN de Entrega</span>
+            <span id="track-otp-code" class="text-xl font-black tracking-widest text-emerald-600 bg-emerald-50 dark:bg-emerald-950/40 px-3 py-1 rounded-xl border border-emerald-200 dark:border-emerald-800 inline-block">4892</span>
+          </div>
+        </div>
+
+        <!-- Human Status Explanation Box (Ultra Intuitive) -->
+        <div id="track-human-expl" class="p-3.5 rounded-2xl bg-orange-500/10 border border-orange-500/20 text-xs flex items-start gap-3">
+          <div class="w-8 h-8 rounded-xl bg-orange-600 text-white flex items-center justify-center flex-shrink-0 text-sm font-bold mt-0.5 shadow-sm">
+            <i class="fa-solid fa-bell"></i>
+          </div>
+          <div>
+            <span class="font-bold text-orange-700 dark:text-orange-400 block text-xs" id="track-human-title">¿Qué está pasando con tu pedido?</span>
+            <p class="text-slate-600 dark:text-slate-300 mt-0.5 leading-relaxed" id="track-human-desc">Tu plato está siendo preparado con sazón casera llanera. Pronto te asignaremos un domiciliario en moto.</p>
+          </div>
+        </div>
+
+        <!-- Progress Steps -->
+        <div class="grid grid-cols-4 gap-2 pt-1 text-center text-[10px] font-bold">
+          <div id="step-1" class="step-item text-emerald-600 font-extrabold">
+            <div class="h-1.5 rounded-full bg-emerald-500 mb-1.5"></div>
+            <span>1. Recibido</span>
+          </div>
+          <div id="step-2" class="step-item text-emerald-600 font-extrabold">
+            <div class="h-1.5 rounded-full bg-emerald-500 mb-1.5"></div>
+            <span>2. En Cocina</span>
+          </div>
+          <div id="step-3" class="step-item text-emerald-600 font-extrabold">
+            <div class="h-1.5 rounded-full bg-emerald-500 mb-1.5"></div>
+            <span>3. En Camino</span>
+          </div>
+          <div id="step-4" class="step-item text-slate-300 dark:text-slate-700">
+            <div class="h-1.5 rounded-full bg-slate-200 dark:bg-slate-800 mb-1.5"></div>
+            <span>4. Entregado</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Driver Profile Card & Live Chat -->
+      <div class="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 p-5 shadow-sm space-y-4">
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div class="flex items-center gap-3">
+            <div class="w-12 h-12 rounded-2xl bg-orange-500/10 text-orange-600 flex items-center justify-center font-bold text-xl shadow-sm">
+              <i class="fa-solid fa-helmet-safety"></i>
+            </div>
+            <div>
+              <p id="track-driver-name" class="font-extrabold text-sm text-slate-900 dark:text-white">Carlos "El Llanero" Rodríguez</p>
+              <p id="track-driver-vehicle" class="text-xs text-slate-500 dark:text-slate-400">Moto Yamaha FZ • Placa WXY-12E</p>
+            </div>
+          </div>
+
+          <div class="flex items-center gap-2 self-end sm:self-auto">
+            <a id="track-driver-whatsapp" target="_blank" href="https://wa.me/573123456781" class="px-3.5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs flex items-center gap-2 shadow-sm transition-all cursor-pointer">
+              <i class="fa-brands fa-whatsapp text-sm"></i> WhatsApp
+            </a>
+            <a id="track-driver-call" href="tel:3123456781" class="px-3.5 py-2 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-800 dark:text-white font-bold text-xs flex items-center gap-2 border border-slate-200 dark:border-slate-700 transition-all cursor-pointer">
+              <i class="fa-solid fa-phone text-xs text-emerald-600"></i> Llamar
+            </a>
+          </div>
+        </div>
+
+        <!-- In-order Chat Box -->
+        <div class="pt-3 border-t border-slate-100 dark:border-slate-800 space-y-2">
+          <span class="text-xs font-bold text-slate-700 dark:text-slate-300 block">Mensajes con el repartidor:</span>
+          <div id="chat-messages-box" class="space-y-2 max-h-36 overflow-y-auto p-3 bg-slate-50 dark:bg-slate-950 rounded-2xl border border-slate-200 dark:border-slate-800 text-xs">
+            <!-- Injected dynamically -->
+          </div>
+          
+          <!-- Quick Reply Chips -->
+          <div class="flex gap-1.5 overflow-x-auto pb-1 scrollbar-none text-[10px]">
+            <button onclick="sendQuickChatMessage('Ya estoy en la portería')" class="px-2.5 py-1 rounded-full bg-slate-100 dark:bg-slate-800 hover:bg-orange-50 dark:hover:bg-orange-950/40 text-slate-700 dark:text-slate-300 hover:text-orange-600 border border-slate-200 dark:border-slate-700 whitespace-nowrap cursor-pointer transition-all">
+              🚪 Ya estoy en la portería
+            </button>
+            <button onclick="sendQuickChatMessage('Voy bajando')" class="px-2.5 py-1 rounded-full bg-slate-100 dark:bg-slate-800 hover:bg-orange-50 dark:hover:bg-orange-950/40 text-slate-700 dark:text-slate-300 hover:text-orange-600 border border-slate-200 dark:border-slate-700 whitespace-nowrap cursor-pointer transition-all">
+              🏃 Voy bajando
+            </button>
+            <button onclick="sendQuickChatMessage('Tengo billete de $50.000')" class="px-2.5 py-1 rounded-full bg-slate-100 dark:bg-slate-800 hover:bg-orange-50 dark:hover:bg-orange-950/40 text-slate-700 dark:text-slate-300 hover:text-orange-600 border border-slate-200 dark:border-slate-700 whitespace-nowrap cursor-pointer transition-all">
+              💵 Pago con billete de $50k
+            </button>
+          </div>
+
+          <div class="flex gap-2 mt-1">
+            <input type="text" id="chat-input" placeholder="Escribe un mensaje al domiciliario..." class="flex-1 px-3 py-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-xs text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-orange-600">
+            <button onclick="sendChatMessage()" class="px-3.5 py-2 bg-orange-600 hover:bg-orange-700 text-white font-bold rounded-xl text-xs cursor-pointer">
+              <i class="fa-solid fa-paper-plane"></i>
+            </button>
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+  </main>
+
+  <!-- Product Customizer Bottom-Sheet Modal (DoorDash/UberEats level) -->
+  <div id="customizer-modal" class="fixed inset-0 bg-slate-950/70 backdrop-blur-sm z-50 hidden flex items-end sm:items-center justify-center p-0 sm:p-4">
+    <div class="bg-white dark:bg-slate-900 rounded-t-3xl sm:rounded-3xl max-w-lg w-full max-h-[85vh] overflow-y-auto shadow-2xl flex flex-col justify-between border border-slate-200 dark:border-slate-800">
+      <div>
+        <div class="relative h-48 bg-slate-200 dark:bg-slate-800 overflow-hidden">
+          <img id="cust-img" src="" class="w-full h-full object-cover">
+          <button onclick="closeCustomizerModal()" class="absolute top-3 right-3 w-8 h-8 rounded-full bg-slate-900/60 text-white flex items-center justify-center backdrop-blur-sm cursor-pointer hover:bg-slate-900">
+            <i class="fa-solid fa-xmark text-sm"></i>
+          </button>
+        </div>
+
+        <div class="p-5 space-y-4">
+          <div>
+            <h3 id="cust-name" class="text-xl font-black text-slate-900 dark:text-white"></h3>
+            <p id="cust-desc" class="text-xs text-slate-500 dark:text-slate-400 mt-1"></p>
+            <span id="cust-price" class="text-base font-black text-orange-600 block mt-2"></span>
+          </div>
+
+          <!-- Dynamic Modifiers Options -->
+          <div id="cust-options-container" class="space-y-3 pt-2 border-t border-slate-100 dark:border-slate-800 text-xs">
+            <!-- Injected dynamically -->
+          </div>
+
+          <!-- Special Notes -->
+          <div class="space-y-1">
+            <label class="text-xs font-bold text-slate-700 dark:text-slate-300">Instrucciones especiales para el asador / cocina</label>
+            <input type="text" id="cust-notes" placeholder="Ej: Poca sal, ají llanero aparte, bien caliente..." class="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-xs text-slate-900 dark:text-white focus:ring-2 focus:ring-orange-600">
+          </div>
+        </div>
+      </div>
+
+      <!-- Modal Bottom Actions -->
+      <div class="p-4 border-t border-slate-100 dark:border-slate-800 bg-white/95 dark:bg-slate-900/95 sticky bottom-0 flex items-center gap-3">
+        <div class="flex items-center gap-2 bg-slate-100 dark:bg-slate-800 rounded-xl p-1">
+          <button onclick="changeCustomizerQty(-1)" class="w-8 h-8 rounded-lg bg-white dark:bg-slate-700 font-black text-xs text-slate-800 dark:text-white flex items-center justify-center cursor-pointer shadow-sm">-</button>
+          <span id="cust-qty" class="text-xs font-black w-6 text-center text-slate-900 dark:text-white">1</span>
+          <button onclick="changeCustomizerQty(1)" class="w-8 h-8 rounded-lg bg-white dark:bg-slate-700 font-black text-xs text-slate-800 dark:text-white flex items-center justify-center cursor-pointer shadow-sm">+</button>
+        </div>
+
+        <button onclick="confirmCustomizerAdd()" id="btn-cust-add" class="flex-1 py-3.5 bg-orange-600 hover:bg-orange-700 text-white font-black text-xs rounded-xl shadow-lg shadow-orange-600/25 transition-all flex items-center justify-between px-4 cursor-pointer">
+          <span>Agregar al Pedido</span>
+          <span id="cust-total-btn">$0</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Cart Drawer Modal -->
+  <div id="cart-drawer" class="fixed inset-0 bg-slate-950/60 backdrop-blur-sm z-50 hidden flex justify-end">
+    <div class="bg-white dark:bg-slate-900 w-full max-w-md h-full shadow-2xl flex flex-col justify-between p-6 border-l border-slate-200 dark:border-slate-800">
+      <div>
+        <div class="flex items-center justify-between pb-4 border-b border-slate-100 dark:border-slate-800 mb-4">
+          <div class="flex items-center gap-2">
+            <i class="fa-solid fa-bag-shopping text-orange-600 text-lg"></i>
+            <h2 class="text-lg font-black text-slate-900 dark:text-white">Tu Canasta</h2>
+          </div>
+          <button onclick="closeCartDrawer()" class="text-slate-400 hover:text-slate-600 dark:hover:text-white cursor-pointer"><i class="fa-solid fa-xmark text-xl"></i></button>
+        </div>
+        
+        <div id="cart-items-list" class="space-y-3 overflow-y-auto max-h-[45vh] pr-1">
+          <!-- Injected dynamically -->
+        </div>
+      </div>
+
+      <!-- Cart Totals & Checkout Trigger -->
+      <div class="pt-4 border-t border-slate-100 dark:border-slate-800 space-y-2">
+        
+        <!-- Coupon Code Input -->
+        <div class="p-2.5 bg-slate-50 dark:bg-slate-800/80 rounded-2xl border border-slate-200 dark:border-slate-700">
+          <div class="flex gap-2">
+            <input type="text" id="coupon-input" placeholder="Cupón (ej: LUPINLLANERO)" class="flex-1 px-3 py-1.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-xs uppercase font-bold text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-orange-600">
+            <button onclick="applyCoupon()" class="px-3 py-1.5 bg-orange-600 hover:bg-orange-700 text-white font-bold text-xs rounded-xl transition-all cursor-pointer">
+              Aplicar
+            </button>
+          </div>
+          <p id="coupon-message" class="text-[11px] font-semibold mt-1 hidden"></p>
+        </div>
+
+        <!-- Emotional Tip Selector (Orange / Emerald) -->
+        <div class="space-y-1 pt-1">
+          <label class="text-[11px] font-bold text-slate-700 dark:text-slate-300 flex items-center justify-between">
+            <span>Propina para el domiciliario:</span>
+            <span id="tip-badge-label" class="text-orange-600 font-bold">$2.000 (Gasolina ⛽)</span>
+          </label>
+          <div class="grid grid-cols-4 gap-1.5 text-[11px] font-bold">
+            <button onclick="selectTip(0, 'Sin propina')" class="tip-btn py-1.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 hover:bg-slate-50 transition-all text-slate-600 dark:text-slate-300 cursor-pointer">
+              $0
+            </button>
+            <button onclick="selectTip(2000, 'Gasolina ⛽')" class="tip-btn active py-1.5 rounded-xl border-2 border-orange-600 bg-orange-50 dark:bg-orange-950/40 text-orange-600 font-bold transition-all cursor-pointer">
+              $2.000 ⛽
+            </button>
+            <button onclick="selectTip(3000, 'Café llanero ☕')" class="tip-btn py-1.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 hover:bg-slate-50 transition-all text-slate-600 dark:text-slate-300 cursor-pointer">
+              $3.000 ☕
+            </button>
+            <button onclick="selectTip(5000, 'Súper Llanero ⭐')" class="tip-btn py-1.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 hover:bg-slate-50 transition-all text-slate-600 dark:text-slate-300 cursor-pointer">
+              $5.000 ⭐
+            </button>
+          </div>
+        </div>
+
+        <div class="flex justify-between text-xs text-slate-500 dark:text-slate-400 pt-1">
+          <span>Subtotal productos:</span>
+          <span id="cart-subtotal" class="font-bold text-slate-800 dark:text-white">$0</span>
+        </div>
+        <div id="row-discount" class="hidden flex justify-between text-xs text-emerald-600 font-bold">
+          <span>Descuento cupón:</span>
+          <span id="cart-discount">-$0</span>
+        </div>
+        <div class="flex justify-between text-xs text-slate-500 dark:text-slate-400">
+          <span>Tarifa de envío (Yopal):</span>
+          <span id="cart-fare" class="font-bold text-slate-800 dark:text-white">$4.000</span>
+        </div>
+        <div class="flex justify-between text-xs text-slate-500 dark:text-slate-400">
+          <span>Propina repartidor:</span>
+          <span id="cart-tip" class="font-bold text-slate-800 dark:text-white">$2.000</span>
+        </div>
+        <div class="flex justify-between text-xs text-slate-500 dark:text-slate-400">
+          <span>Tarifa de servicio:</span>
+          <span class="font-bold text-slate-800 dark:text-white">$1.000</span>
+        </div>
+        <div class="flex justify-between text-sm font-black text-slate-900 dark:text-white pt-2 border-t border-slate-100 dark:border-slate-800">
+          <span>Total a Pagar:</span>
+          <span id="cart-total" class="text-orange-600 text-base font-black">$0</span>
+        </div>
+
+        <button onclick="openCheckoutModal()" class="w-full py-3.5 bg-orange-600 hover:bg-orange-700 text-white font-extrabold text-sm rounded-2xl shadow-xl shadow-orange-600/25 transition-all mt-2 cursor-pointer">
+          Continuar con el Pago
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Checkout & Payment Modal -->
+  <div id="checkout-modal" class="fixed inset-0 bg-slate-950/70 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+    <div class="bg-white dark:bg-slate-900 rounded-3xl max-w-lg w-full p-6 shadow-2xl space-y-4 max-h-[90vh] overflow-y-auto border border-slate-200 dark:border-slate-800">
+      <div class="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-slate-800">
+        <h3 class="text-lg font-black text-slate-900 dark:text-white">Finalizar Pedido en Yopal</h3>
+        <button onclick="closeCheckoutModal()" class="text-slate-400 hover:text-slate-600 dark:hover:text-white cursor-pointer"><i class="fa-solid fa-xmark text-lg"></i></button>
+      </div>
+
+      <!-- Contact Info -->
+      <div class="space-y-2">
+        <label class="text-xs font-bold text-slate-700 dark:text-slate-300">Tus Datos de Contacto</label>
+        <div class="grid grid-cols-2 gap-2">
+          <input type="text" id="chk-name" value="Ana María Gómez" placeholder="Tu Nombre" class="px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-xs text-slate-900 dark:text-white focus:ring-2 focus:ring-orange-600">
+          <input type="tel" id="chk-phone" value="3157890123" placeholder="Teléfono Móvil" class="px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-xs text-slate-900 dark:text-white focus:ring-2 focus:ring-orange-600">
+        </div>
+      </div>
+
+      <!-- Delivery Reference -->
+      <div class="space-y-1">
+        <label class="text-xs font-bold text-slate-700 dark:text-slate-300">Referencia de entrega en Yopal (Obligatorio)</label>
+        <input type="text" id="chk-reference" value="Casa esquinera de dos pisos, reja blanca al lado de la panadería" placeholder="Ej: Frente al parque de La Campiña, portón blanco..." class="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-xs text-slate-900 dark:text-white focus:ring-2 focus:ring-orange-600">
+      </div>
+
+      <!-- Payment Method Selection (Bre-B, Nequi, Cash, PSE) -->
+      <div class="space-y-2">
+        <label class="text-xs font-bold text-slate-700 dark:text-slate-300 flex items-center justify-between">
+          <span>Método de Pago:</span>
+          <span class="text-[10px] font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-full border border-emerald-500/20">⚡ Bre-B Sin Comisiones</span>
+        </label>
+        
+        <div class="grid grid-cols-2 gap-2 text-xs font-bold">
+          <!-- Option 1: Bre-B Llave Interoperable -->
+          <label class="pay-method-pill p-3 border-2 border-orange-600 bg-orange-50 dark:bg-orange-950/40 text-orange-600 rounded-2xl flex items-center gap-2.5 cursor-pointer">
+            <input type="radio" name="pay-method" value="bre_b" checked onchange="handlePaymentMethodChange()" class="hidden">
+            <div class="w-8 h-8 rounded-xl bg-orange-600 text-white flex items-center justify-center text-sm shadow-sm flex-shrink-0">
+              <i class="fa-solid fa-bolt"></i>
+            </div>
+            <div class="text-left">
+              <span class="block font-black leading-tight text-xs">Llave Bre-B</span>
+              <span class="text-[10px] text-slate-500 dark:text-slate-400 font-medium">$0 Comisión</span>
+            </div>
+          </label>
+
+          <!-- Option 2: Cash -->
+          <label class="pay-method-pill p-3 border-2 border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 rounded-2xl flex items-center gap-2.5 cursor-pointer">
+            <input type="radio" name="pay-method" value="cash" onchange="handlePaymentMethodChange()" class="hidden">
+            <div class="w-8 h-8 rounded-xl bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-200 flex items-center justify-center text-sm shadow-sm flex-shrink-0">
+              <i class="fa-solid fa-money-bill-wave"></i>
+            </div>
+            <div class="text-left">
+              <span class="block font-black leading-tight text-xs">Efectivo</span>
+              <span class="text-[10px] text-slate-500 dark:text-slate-400 font-medium">Contra Entrega</span>
+            </div>
+          </label>
+
+          <!-- Option 3: Nequi Directo -->
+          <label class="pay-method-pill p-3 border-2 border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 rounded-2xl flex items-center gap-2.5 cursor-pointer">
+            <input type="radio" name="pay-method" value="nequi" onchange="handlePaymentMethodChange()" class="hidden">
+            <div class="w-8 h-8 rounded-xl bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-200 flex items-center justify-center text-sm shadow-sm flex-shrink-0">
+              <i class="fa-solid fa-qrcode"></i>
+            </div>
+            <div class="text-left">
+              <span class="block font-black leading-tight text-xs">Nequi / QR</span>
+              <span class="text-[10px] text-slate-500 dark:text-slate-400 font-medium">Directo Móvil</span>
+            </div>
+          </label>
+
+          <!-- Option 4: Wompi / PSE -->
+          <label class="pay-method-pill p-3 border-2 border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 rounded-2xl flex items-center gap-2.5 cursor-pointer">
+            <input type="radio" name="pay-method" value="wompi_pse" onchange="handlePaymentMethodChange()" class="hidden">
+            <div class="w-8 h-8 rounded-xl bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-200 flex items-center justify-center text-sm shadow-sm flex-shrink-0">
+              <i class="fa-regular fa-credit-card"></i>
+            </div>
+            <div class="text-left">
+              <span class="block font-black leading-tight text-xs">PSE / Tarjeta</span>
+              <span class="text-[10px] text-slate-500 dark:text-slate-400 font-medium">Wompi Digital</span>
+            </div>
+          </label>
+        </div>
+      </div>
+
+      <!-- Bre-B Instructions Box (When Bre-B is Selected) -->
+      <div id="bre-b-info-box" class="p-3.5 bg-gradient-to-r from-orange-500/10 to-amber-500/10 rounded-2xl border border-orange-500/20 text-xs space-y-2">
+        <div class="flex items-center justify-between">
+          <span class="font-extrabold text-orange-700 dark:text-orange-400 flex items-center gap-1.5">
+            <i class="fa-solid fa-bolt"></i> Llave Bre-B Oficial LUPIN
+          </span>
+          <span class="text-[10px] font-black text-emerald-600 bg-emerald-50 dark:bg-emerald-950/60 px-2 py-0.5 rounded-full border border-emerald-200 dark:border-emerald-800">Interoperable 24/7</span>
+        </div>
+        
+        <div class="bg-white dark:bg-slate-800 p-2.5 rounded-xl border border-slate-200 dark:border-slate-700 space-y-1">
+          <div class="flex justify-between items-center text-slate-700 dark:text-slate-300">
+            <span>📱 Llave Celular:</span>
+            <strong class="text-orange-600 font-black tracking-wider select-all cursor-pointer" onclick="navigator.clipboard.writeText('3123456781'); alert('¡Llave copiada al portapapeles!');">312 345 6781 📋</strong>
+          </div>
+          <div class="flex justify-between items-center text-slate-700 dark:text-slate-300">
+            <span>🏢 Llave Comercio:</span>
+            <strong class="text-slate-900 dark:text-white font-black select-all">LUPIN-YOPAL-01</strong>
+          </div>
+        </div>
+        <p class="text-[10px] text-slate-500 dark:text-slate-400 leading-tight">
+          Envía desde <strong>Nequi, Daviplata, Bancolombia, Nu, Davivienda</strong> o cualquier banco sin costo de transferencia.
+        </p>
+      </div>
+
+      <!-- Cash Change Input if Cash -->
+      <div id="cash-change-box" class="hidden p-3 bg-orange-500/10 rounded-2xl border border-orange-500/20 space-y-1">
+        <label class="text-xs font-bold text-orange-900 dark:text-orange-200">¿Con cuánto vas a pagar en efectivo?</label>
+        <div class="flex items-center gap-2">
+          <span class="text-xs font-bold text-slate-400">$</span>
+          <input type="number" id="chk-cash-amount" value="50000" step="5000" class="flex-1 px-3 py-1.5 bg-white dark:bg-slate-800 border border-orange-500/30 rounded-xl text-xs font-black text-slate-900 dark:text-white">
+        </div>
+        <p class="text-[11px] text-orange-700 dark:text-orange-300">El domiciliario llevará las vueltas exactas preparadas.</p>
+      </div>
+
+      <button onclick="submitOrder()" id="btn-submit-order" class="w-full py-4 bg-emerald-600 hover:bg-emerald-700 text-white font-black text-sm rounded-2xl shadow-xl shadow-emerald-600/25 transition-all cursor-pointer">
+        ¡Confirmar y Enviar Pedido!
+      </button>
+    </div>
+  </div>
+
+  <!-- Location Picker Modal -->
+  <div id="location-modal" class="fixed inset-0 bg-slate-950/70 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+    <div class="bg-white dark:bg-slate-900 rounded-3xl max-w-md w-full p-5 shadow-2xl space-y-4 border border-slate-200 dark:border-slate-800">
+      <div class="flex items-center justify-between">
+        <h3 class="text-base font-bold text-slate-900 dark:text-white flex items-center gap-2">
+          <i class="fa-solid fa-location-crosshairs text-orange-600"></i> Seleccionar Ubicación en Yopal
+        </h3>
+        <button onclick="closeLocationModal()" class="text-slate-400 hover:text-slate-600 dark:hover:text-white cursor-pointer"><i class="fa-solid fa-xmark text-lg"></i></button>
+      </div>
+      <p class="text-xs text-slate-500 dark:text-slate-400">Mueve el pin en el mapa al punto exacto donde deseas recibir tu pedido en Yopal.</p>
+      
+      <div id="picker-map" class="w-full h-56 rounded-2xl border border-slate-200 dark:border-slate-800 z-10"></div>
+
+      <div class="space-y-2">
+        <input type="text" id="picker-address-input" value="Calle 24 # 25-18, Barrio La Campiña" placeholder="Dirección en Yopal" class="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-xs font-bold text-slate-900 dark:text-white">
+      </div>
+
+      <button onclick="confirmLocation()" class="w-full py-3 bg-orange-600 hover:bg-orange-700 text-white font-bold text-xs rounded-xl shadow-lg shadow-orange-600/20 cursor-pointer">
+        Confirmar Dirección
+      </button>
+    </div>
+  </div>
+
+  <!-- Constructive Review Modal (3-Block Structured Review + Points) -->
+  <div id="review-modal" class="fixed inset-0 bg-slate-950/70 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+    <div class="bg-white dark:bg-slate-900 rounded-3xl max-w-lg w-full p-6 shadow-2xl space-y-4 max-h-[90vh] overflow-y-auto border border-slate-200 dark:border-slate-800">
+      <div class="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-slate-800">
+        <div class="flex items-center gap-2.5">
+          <div class="w-8 h-8 rounded-xl bg-orange-500/10 text-orange-600 flex items-center justify-center font-bold text-sm">
+            <i class="fa-solid fa-star"></i>
+          </div>
+          <div>
+            <h3 class="text-base font-black text-slate-900 dark:text-white leading-tight">Crítica Constructiva</h3>
+            <span class="text-[11px] text-slate-500 dark:text-slate-400 font-medium">Ayuda al comercio a mejorar y gana +50 Pts</span>
+          </div>
+        </div>
+        <button onclick="closeReviewModal()" class="text-slate-400 hover:text-slate-600 dark:hover:text-white cursor-pointer"><i class="fa-solid fa-xmark text-lg"></i></button>
+      </div>
+
+      <!-- Star Rating Picker -->
+      <div class="space-y-1 text-center py-2 bg-slate-50 dark:bg-slate-800/60 rounded-2xl border border-slate-200 dark:border-slate-700/60">
+        <span class="text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider block">Calificación General</span>
+        <div class="flex items-center justify-center gap-2 text-2xl text-amber-400 py-1" id="review-star-picker">
+          <i class="fa-solid fa-star cursor-pointer star-pick hover:scale-125 transition-transform" onclick="selectReviewStars(1)"></i>
+          <i class="fa-solid fa-star cursor-pointer star-pick hover:scale-125 transition-transform" onclick="selectReviewStars(2)"></i>
+          <i class="fa-solid fa-star cursor-pointer star-pick hover:scale-125 transition-transform" onclick="selectReviewStars(3)"></i>
+          <i class="fa-solid fa-star cursor-pointer star-pick hover:scale-125 transition-transform" onclick="selectReviewStars(4)"></i>
+          <i class="fa-solid fa-star cursor-pointer star-pick hover:scale-125 transition-transform" onclick="selectReviewStars(5)"></i>
+        </div>
+        <span id="review-stars-label" class="text-xs font-black text-orange-600">5 Estrellas (Excelente)</span>
+      </div>
+
+      <!-- 3 Constructive Structured Blocks -->
+      <div class="space-y-3 text-xs">
+        <div>
+          <label class="font-bold text-emerald-700 dark:text-emerald-400 flex items-center gap-1.5 mb-1">
+            <i class="fa-solid fa-circle-check"></i> 1. Lo Positivo: ¿Qué hizo bien el negocio?
+          </label>
+          <textarea id="rev-positive" rows="2" placeholder="Ej: La carne estaba tierna, bien asada y el plátano con queso siete cueros delicioso..." class="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl font-medium text-slate-900 dark:text-white focus:ring-2 focus:ring-emerald-500 focus:outline-none"></textarea>
+        </div>
+
+        <div>
+          <label class="font-bold text-amber-700 dark:text-amber-400 flex items-center gap-1.5 mb-1">
+            <i class="fa-solid fa-triangle-exclamation"></i> 2. A Mejorar: ¿Qué problema o demora encontraste?
+          </label>
+          <textarea id="rev-improve" rows="2" placeholder="Ej: Las papas llegaron un poco frías o faltó más ají casero..." class="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl font-medium text-slate-900 dark:text-white focus:ring-2 focus:ring-amber-500 focus:outline-none"></textarea>
+        </div>
+
+        <div>
+          <label class="font-bold text-orange-700 dark:text-orange-400 flex items-center gap-1.5 mb-1">
+            <i class="fa-solid fa-lightbulb"></i> 3. Recomendación: ¿Qué sugerencia le das al negocio?
+          </label>
+          <textarea id="rev-recommendation" rows="2" placeholder="Ej: Sugiero usar bolsas térmicas selladas para las frituras..." class="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl font-medium text-slate-900 dark:text-white focus:ring-2 focus:ring-orange-600 focus:outline-none"></textarea>
+        </div>
+      </div>
+
+      <button onclick="submitReview()" id="btn-submit-review" class="w-full py-3.5 bg-orange-600 hover:bg-orange-700 text-white font-black text-xs rounded-2xl shadow-xl shadow-orange-600/25 transition-all flex items-center justify-center gap-2 cursor-pointer">
+        <i class="fa-solid fa-paper-plane"></i> Publicar Crítica Constructiva (+50 Pts)
+      </button>
+    </div>
+  </div>
+
+  <!-- LUPIN Mandados / Favores Express Modal -->
+  <div id="errands-modal" class="fixed inset-0 bg-slate-950/70 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+    <div class="bg-white dark:bg-slate-900 rounded-3xl max-w-lg w-full p-6 shadow-2xl space-y-4 max-h-[90vh] overflow-y-auto border border-slate-200 dark:border-slate-800">
+      <div class="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-slate-800">
+        <div class="flex items-center gap-2">
+          <div class="w-8 h-8 rounded-xl bg-orange-500/10 text-orange-600 flex items-center justify-center font-bold text-sm">
+            <i class="fa-solid fa-bolt"></i>
+          </div>
+          <div>
+            <h3 class="text-base font-black text-slate-900 dark:text-white leading-tight">LUPIN Mandados Express</h3>
+            <span class="text-[11px] text-slate-400 font-medium">Trámites, compras y envíos punto a punto en Yopal</span>
+          </div>
+        </div>
+        <button onclick="closeErrandsModal()" class="text-slate-400 hover:text-slate-600 dark:hover:text-white cursor-pointer"><i class="fa-solid fa-xmark text-lg"></i></button>
+      </div>
+
+      <div class="space-y-3 text-xs">
+        <div>
+          <label class="font-bold text-slate-700 dark:text-slate-300 block mb-1">¿Qué necesitas que hagamos por ti?</label>
+          <input type="text" id="erd-title" placeholder="Ej: Llevar llaves urgentes, Pagar recibo Enerca, Comprar medicina puntual" class="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl font-medium text-slate-900 dark:text-white focus:ring-2 focus:ring-orange-600 focus:outline-none">
+        </div>
+
+        <div>
+          <label class="font-bold text-slate-700 dark:text-slate-300 block mb-1">Detalles e instrucciones claras</label>
+          <textarea id="erd-desc" rows="2" placeholder="Ej: Recoger sobre sellado en Unicentro con Doña Martha y llevar a la Cra 20 # 14-30..." class="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl font-medium text-slate-900 dark:text-white focus:ring-2 focus:ring-orange-600 focus:outline-none"></textarea>
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div>
+            <label class="font-bold text-slate-700 dark:text-slate-300 block mb-1">📍 Punto de Recogida en Yopal</label>
+            <input type="text" id="erd-pickup" value="Centro Comercial Unicentro Yopal" class="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl font-medium text-slate-900 dark:text-white">
+          </div>
+          <div>
+            <label class="font-bold text-slate-700 dark:text-slate-300 block mb-1">🏁 Punto de Entrega en Yopal</label>
+            <input type="text" id="erd-dropoff" value="Calle 30 # 21-50, Llano Lindo" class="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl font-medium text-slate-900 dark:text-white">
+          </div>
+        </div>
+
+        <!-- Dynamic Fare Estimate (Emerald) -->
+        <div class="p-3 bg-emerald-50 dark:bg-emerald-950/40 rounded-2xl border border-emerald-200 dark:border-emerald-800 flex items-center justify-between">
+          <div>
+            <span class="text-[10px] uppercase font-bold text-emerald-700 dark:text-emerald-400">Tarifa Estimada del Mandado</span>
+            <p class="text-xs text-emerald-900 dark:text-emerald-300 font-bold">Distancia: ~3.2 km en Yopal</p>
+          </div>
+          <span class="text-base font-black text-emerald-600 dark:text-emerald-400">$6.500 COP</span>
+        </div>
+      </div>
+
+      <button onclick="submitErrand()" id="btn-submit-errand" class="w-full py-3.5 bg-orange-600 hover:bg-orange-700 text-white font-black text-xs rounded-2xl shadow-xl shadow-orange-600/25 transition-all flex items-center justify-center gap-2 cursor-pointer">
+        <i class="fa-solid fa-paper-plane"></i> Solicitar Domiciliario para Mandado
+      </button>
+    </div>
+  </div>
+
+  <!-- Floating Bottom Sticky Cart Bar (Always 1-Touch Visible when cart has items) -->
+  <div id="floating-cart-bar" onclick="openCartDrawer()" class="hidden fixed bottom-20 sm:bottom-6 left-4 right-4 max-w-md mx-auto bg-orange-600 hover:bg-orange-700 text-white rounded-2xl p-3.5 shadow-2xl z-40 flex items-center justify-between cursor-pointer btn-spring transition-all border border-orange-500/30">
+    <div class="flex items-center gap-3">
+      <span id="floating-cart-count" class="w-8 h-8 rounded-xl bg-white text-orange-600 font-black flex items-center justify-center text-xs shadow-md">0</span>
+      <div>
+        <span class="text-[10px] font-bold uppercase tracking-wider text-orange-100 block leading-tight">Tu Canasta Lista</span>
+        <p id="floating-cart-total" class="text-sm font-black text-white leading-tight">$0 COP</p>
+      </div>
+    </div>
+    <span class="text-xs font-black flex items-center gap-1.5 bg-white/20 hover:bg-white/30 px-3.5 py-2 rounded-xl transition-all">
+      Ver y Pagar <i class="fa-solid fa-arrow-right text-[10px]"></i>
+    </span>
+  </div>
+
+  <!-- Floating Mobile Glassmorphism Bottom Navigation Bar -->
+  <nav class="fixed bottom-3 left-4 right-4 max-w-md mx-auto bg-white/90 dark:bg-slate-900/90 border border-slate-200 dark:border-slate-800 rounded-2xl p-2 flex items-center justify-around z-40 backdrop-blur-lg shadow-xl sm:hidden">
+    <button onclick="showHomeView()" class="flex flex-col items-center gap-0.5 text-orange-600 font-bold text-[10px] cursor-pointer">
+      <i class="fa-solid fa-house text-base"></i>
+      <span>Explorar</span>
+    </button>
+    <button onclick="openErrandsModal()" class="flex flex-col items-center gap-0.5 text-slate-500 dark:text-slate-400 hover:text-orange-600 font-bold text-[10px] cursor-pointer">
+      <i class="fa-solid fa-bolt text-base"></i>
+      <span>Mandados</span>
+    </button>
+    <button onclick="showTrackingView()" class="flex flex-col items-center gap-0.5 text-slate-500 dark:text-slate-400 hover:text-orange-600 font-bold text-[10px] cursor-pointer relative">
+      <i class="fa-solid fa-motorcycle text-base"></i>
+      <span>Mi Pedido</span>
+    </button>
+    <button onclick="openCartDrawer()" class="flex flex-col items-center gap-0.5 text-slate-500 dark:text-slate-400 hover:text-orange-600 font-bold text-[10px] cursor-pointer relative">
+      <i class="fa-solid fa-bag-shopping text-base"></i>
+      <span>Canasta</span>
+    </button>
+  </nav>
+
+  <!-- Footer -->
+  <footer class="text-center py-6 text-xs text-slate-500 dark:text-slate-500 border-t border-slate-200 dark:border-slate-800 mt-12 bg-white dark:bg-slate-950">
+    <p>LUPIN Express © 2026 • Desarrollado por <strong>Ing. Jeisson Alberto Sarmiento</strong> • Yopal, Casanare, Colombia.</p>
+  </footer>
+
+  <script src="/client/app.js"></script>
+</body>
+</html>
