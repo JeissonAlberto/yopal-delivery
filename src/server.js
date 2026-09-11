@@ -23,9 +23,40 @@ const io = socketIo(server, {
 // Guardar instancia de io en app para su uso en rutas
 app.set('io', io);
 
-// Middlewares de Alto Rendimiento
+// Middlewares de Alto Rendimiento & Seguridad
 app.use(compression()); // Compresión Gzip/Deflate para reducir uso de red 75%
 app.use(cors());
+
+// Cabeceras HTTP de Seguridad
+app.use((req, res, next) => {
+  res.setHeader('X-Content-Type-Options', 'nosniff');
+  res.setHeader('X-Frame-Options', 'SAMEORIGIN');
+  res.setHeader('X-XSS-Protection', '1; mode=block');
+  res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
+  next();
+});
+
+// Rate Limiter en Memoria para Protección contra Ataques de Fuerza Bruta
+const ipRequestHits = new Map();
+app.use('/api/auth/login', (req, res, next) => {
+  const ip = req.ip || req.connection.remoteAddress || 'unknown';
+  const now = Date.now();
+  const clientHits = ipRequestHits.get(ip) || { count: 0, resetAt: now + 60000 };
+
+  if (now > clientHits.resetAt) {
+    clientHits.count = 1;
+    clientHits.resetAt = now + 60000;
+  } else {
+    clientHits.count++;
+  }
+  ipRequestHits.set(ip, clientHits);
+
+  if (clientHits.count > 60) {
+    return res.status(429).json({ error: 'Demasiadas solicitudes de autenticación. Intenta de nuevo en un minuto.' });
+  }
+  next();
+});
+
 app.use(express.json({ limit: '1mb' }));
 app.use(express.urlencoded({ extended: true, limit: '1mb' }));
 

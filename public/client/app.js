@@ -41,6 +41,17 @@ document.addEventListener('DOMContentLoaded', () => {
 function initSocket() {
   socket = io();
 
+  socket.on('connect', () => {
+    if (activeOrderId) socket.emit('join:order', activeOrderId);
+  });
+
+  socket.on('reconnect', () => {
+    if (activeOrderId) {
+      socket.emit('join:order', activeOrderId);
+      loadOrderTrackingData();
+    }
+  });
+
   socket.on('order:status_update', (data) => {
     if (activeOrderId && data.orderId === activeOrderId) {
       updateTrackingUI(data.status, data.driver);

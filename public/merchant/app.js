@@ -16,6 +16,17 @@ document.addEventListener('DOMContentLoaded', () => {
 function initSocket() {
   socket = io();
 
+  socket.on('connect', () => {
+    if (currentMerchantId) socket.emit('join:merchant', currentMerchantId);
+  });
+
+  socket.on('reconnect', () => {
+    if (currentMerchantId) {
+      socket.emit('join:merchant', currentMerchantId);
+      loadMerchantOrders();
+    }
+  });
+
   socket.on('order:new', (data) => {
     playOrderBell();
     loadMerchantOrders();
@@ -145,7 +156,7 @@ function printKitchenTicket(orderId) {
 
 function renderOrderCard(o) {
   const itemsHtml = o.items.map(i => `
-    <li class="flex justify-between py-1 border-b border-slate-200 dark:border-slate-800 text-xs">
+    <li class="flex justify-between py-1 border-b border-slate-100 dark:border-slate-800 text-xs">
       <span class="text-slate-800 dark:text-slate-200"><strong class="text-orange-600 font-bold">${i.quantity}x</strong> ${i.product_name}</span>
       <span class="text-slate-500 dark:text-slate-400 font-medium">${formatCOP(i.total_price)}</span>
     </li>
@@ -153,6 +164,13 @@ function renderOrderCard(o) {
 
   let actionButtons = '';
   const elapsed = getElapsedMinutes(o.created_at);
+
+  let urgencyClass = 'bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-400 border-emerald-200 dark:border-emerald-800';
+  if (elapsed >= 25) {
+    urgencyClass = 'bg-rose-50 dark:bg-rose-950/60 text-rose-600 dark:text-rose-400 border-rose-300 dark:border-rose-800 animate-pulse font-black';
+  } else if (elapsed >= 15) {
+    urgencyClass = 'bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-400 border-amber-200 dark:border-amber-800 font-bold';
+  }
 
   if (o.status === 'created') {
     actionButtons = `

@@ -15,7 +15,10 @@ router.post('/register', async (req, res) => {
       return res.status(400).json({ error: 'Todos los campos básicos son obligatorios' });
     }
 
-    const existingUser = db.prepare('SELECT id FROM users WHERE email = ? OR phone = ?').get(email, phone);
+    const cleanEmail = email.toLowerCase().trim();
+    const cleanPhone = phone.trim();
+
+    const existingUser = db.prepare('SELECT id FROM users WHERE LOWER(email) = ? OR phone = ?').get(cleanEmail, cleanPhone);
     if (existingUser) {
       return res.status(400).json({ error: 'El correo electrónico o número de teléfono ya está registrado' });
     }
@@ -26,7 +29,7 @@ router.post('/register', async (req, res) => {
     db.prepare(`
       INSERT INTO users (id, name, email, phone, password_hash, role)
       VALUES (?, ?, ?, ?, ?, ?)
-    `).run(userId, name, email, phone, passwordHash, role);
+    `).run(userId, name.trim(), cleanEmail, cleanPhone, passwordHash, role);
 
     // Si es repartidor, registrar en tabla drivers
     if (role === 'driver') {
@@ -34,15 +37,15 @@ router.post('/register', async (req, res) => {
       db.prepare(`
         INSERT INTO drivers (id, user_id, name, phone, vehicle_type, plate_number, lat, lng, is_online)
         VALUES (?, ?, ?, ?, ?, ?, ?, ?, 1)
-      `).run(driverId, userId, name, phone, vehicle_type || 'moto', plate_number || '', config.YOPAL_CENTER.lat, config.YOPAL_CENTER.lng);
+      `).run(driverId, userId, name.trim(), cleanPhone, vehicle_type || 'moto', plate_number || '', config.YOPAL_CENTER.lat, config.YOPAL_CENTER.lng);
     }
 
-    const token = jwt.sign({ id: userId, email, role, name }, config.JWT_SECRET, { expiresIn: '7d' });
+    const token = jwt.sign({ id: userId, email: cleanEmail, role, name: name.trim() }, config.JWT_SECRET, { expiresIn: '7d' });
 
     res.status(201).json({
       message: 'Usuario registrado exitosamente',
       token,
-      user: { id: userId, name, email, phone, role }
+      user: { id: userId, name: name.trim(), email: cleanEmail, phone: cleanPhone, role }
     });
   } catch (err) {
     console.error('Error en registro:', err);
@@ -59,7 +62,8 @@ router.post('/login', async (req, res) => {
       return res.status(400).json({ error: 'Correo y contraseña requeridos' });
     }
 
-    const user = db.prepare('SELECT * FROM users WHERE email = ?').get(email);
+    const cleanEmail = email.toLowerCase().trim();
+    const user = db.prepare('SELECT * FROM users WHERE LOWER(email) = ?').get(cleanEmail);
     if (!user) {
       return res.status(401).json({ error: 'Credenciales inválidas' });
     }

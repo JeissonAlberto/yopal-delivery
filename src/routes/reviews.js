@@ -108,6 +108,20 @@ router.post('/', (req, res) => {
       }
     }
 
+    // Verificar si ya existe una reseña para este pedido
+    if (order_id) {
+      const existing = db.prepare('SELECT id FROM business_reviews WHERE order_id = ? AND user_id = ?').get(order_id, user_id);
+      if (existing) {
+        db.prepare(`
+          UPDATE business_reviews
+          SET rating = ?, positive_aspects = ?, improvement_aspects = ?, recommendation = ?, is_verified_purchase = 1
+          WHERE id = ?
+        `).run(parsedRating, positive_aspects || 'Buen servicio', improvement_aspects || '', recommendation || '', existing.id);
+        const updated = db.prepare('SELECT * FROM business_reviews WHERE id = ?').get(existing.id);
+        return res.json({ message: 'Tu crítica constructiva fue actualizada exitosamente.', review: updated });
+      }
+    }
+
     const reviewId = `rev-${uuidv4().substring(0, 8)}`;
     const finalUserName = user_name || 'Cliente de Yopal';
 

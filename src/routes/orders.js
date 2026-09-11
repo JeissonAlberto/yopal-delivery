@@ -296,6 +296,18 @@ router.patch('/:id/status', (req, res) => {
       return res.status(400).json({ error: 'Estado no válido' });
     }
 
+    const currentOrder = db.prepare('SELECT status FROM orders WHERE id = ?').get(id);
+    if (!currentOrder) {
+      return res.status(404).json({ error: 'Pedido no encontrado' });
+    }
+
+    if (currentOrder.status === 'delivered' && status === 'cancelled') {
+      return res.status(400).json({ error: 'No se puede cancelar un pedido que ya fue entregado y verificado mediante PIN OTP' });
+    }
+    if (currentOrder.status === 'delivered' && status !== 'delivered') {
+      return res.status(400).json({ error: 'El pedido ya fue finalizado exitosamente' });
+    }
+
     let timestampCol = null;
     if (status === 'confirmed') timestampCol = 'confirmed_at';
     if (status === 'preparing') timestampCol = 'prepared_at';

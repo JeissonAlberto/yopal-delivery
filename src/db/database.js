@@ -9,6 +9,7 @@ db.pragma('synchronous = NORMAL');
 db.pragma('cache_size = -64000'); // 64MB memory cache
 db.pragma('temp_store = MEMORY');
 db.pragma('mmap_size = 268435456'); // 256MB memory mapped I/O
+db.pragma('busy_timeout = 10000'); // 10s wait before busy error
 db.pragma('foreign_keys = ON');
 
 // Register Custom User Defined Functions for Geospatial calculations

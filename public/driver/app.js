@@ -42,6 +42,17 @@ document.addEventListener('DOMContentLoaded', () => {
 function initSocket() {
   socket = io();
 
+  socket.on('connect', () => {
+    if (currentDriverId) socket.emit('join:driver', currentDriverId);
+  });
+
+  socket.on('reconnect', () => {
+    if (currentDriverId) {
+      socket.emit('join:driver', currentDriverId);
+      changeDriver();
+    }
+  });
+
   socket.on('order:assigned', (offer) => {
     playRadarAlert();
     pendingOffer = offer;
