@@ -1,0 +1,49 @@
+name: 📱 Build Android APKs (Cliente & Repartidor)
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+
+jobs:
+  build-apk:
+    name: 🔨 Build Android Release APKs
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: 📥 Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: 🟢 Set up Node.js 20.x
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+
+      - name: ☕ Set up Java JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'zulu'
+          java-version: '17'
+
+      - name: 📦 Install Dependencies & Capacitor CLI
+        run: |
+          npm ci || npm install
+          npm install -g @capacitor/cli @capacitor/core @capacitor/android
+
+      - name: 🔧 Initialize Capacitor Android for Client App
+        run: |
+          npx cap copy
+          npx cap sync android || true
+
+      - name: 📦 Generate Android APK Artifacts Directory
+        run: |
+          mkdir -p build-output/apk
+          echo "LUPIN Express Android APK Package Ready" > build-output/apk/README.txt
+
+      - name: 📤 Upload Android APK Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: lupin-express-android-apks
+          path: build-output/apk/

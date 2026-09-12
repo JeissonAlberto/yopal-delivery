@@ -99,6 +99,9 @@ async function runFavoritesReorderAndWithdrawalsSuite() {
   );
 
   // 5. Retiro de Ganancias de Billetera a Nequi / Bre-B para Repartidor
+  const { db } = require('./src/db/database');
+  db.prepare("UPDATE drivers SET balance_earnings = balance_earnings + 50000 WHERE id = 'drv-01'").run();
+
   const resWithdraw = await makeRequest({
     hostname: 'localhost',
     port: 3000,

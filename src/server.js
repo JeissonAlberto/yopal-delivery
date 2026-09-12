@@ -39,7 +39,7 @@ app.use((req, res, next) => {
 // Rate Limiter en Memoria para Protección contra Ataques de Fuerza Bruta
 const ipRequestHits = new Map();
 app.use('/api/auth/login', (req, res, next) => {
-  const ip = req.ip || req.connection.remoteAddress || 'unknown';
+  const ip = req.headers['x-forwarded-for'] || req.ip || req.connection.remoteAddress || 'unknown';
   const now = Date.now();
   const clientHits = ipRequestHits.get(ip) || { count: 0, resetAt: now + 60000 };
 
@@ -51,7 +51,8 @@ app.use('/api/auth/login', (req, res, next) => {
   }
   ipRequestHits.set(ip, clientHits);
 
-  if (clientHits.count > 60) {
+  // Límite de 35 intentos de login por minuto por IP
+  if (clientHits.count > 35) {
     return res.status(429).json({ error: 'Demasiadas solicitudes de autenticación. Intenta de nuevo en un minuto.' });
   }
   next();
