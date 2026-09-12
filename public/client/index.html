@@ -347,11 +347,39 @@
         <div class="flex items-center justify-between">
           <div class="flex items-center gap-2">
             <div class="w-3 h-3 rounded-full bg-emerald-500 animate-ping"></div>
-            <span class="text-xs font-bold uppercase tracking-wider text-slate-600 dark:text-slate-300">Rastreo GPS en Vivo (Yopal)</span>
+            <span class="text-xs font-black uppercase tracking-wider text-slate-800 dark:text-slate-200">Rastreo Satelital en Vivo • Yopal</span>
           </div>
-          <span id="track-eta" class="text-xs font-bold text-orange-600 bg-orange-50 dark:bg-orange-950/40 px-2.5 py-0.5 rounded-full border border-orange-200 dark:border-orange-800">Llegada est: ~15 min</span>
+          <div class="flex items-center gap-2">
+            <span id="track-speed-pill" class="text-[10px] font-black text-slate-700 dark:text-slate-300 bg-slate-100 dark:bg-slate-800 px-2 py-0.5 rounded-md border border-slate-200 dark:border-slate-700">
+              🛵 35 km/h
+            </span>
+            <span id="track-eta" class="text-xs font-black text-orange-600 bg-orange-50 dark:bg-orange-950/40 px-3 py-1 rounded-full border border-orange-200 dark:border-orange-800 shadow-sm">
+              Llegada est: ~15 min
+            </span>
+          </div>
         </div>
-        <div id="tracking-map" class="w-full h-64 sm:h-80 rounded-2xl border border-slate-200 dark:border-slate-800 z-10"></div>
+        
+        <!-- Interactive Leaflet Map Viewport -->
+        <div class="relative overflow-hidden rounded-2xl border border-slate-200 dark:border-slate-800">
+          <div id="tracking-map" class="w-full h-72 sm:h-96 z-10"></div>
+          <div id="track-distance-overlay" class="absolute bottom-3 left-3 bg-slate-950/85 backdrop-blur-md text-white px-3 py-1.5 rounded-xl text-xs font-bold shadow-lg border border-slate-800 z-20 flex items-center gap-2">
+            <i class="fa-solid fa-location-arrow text-orange-500 animate-pulse"></i>
+            <span id="track-dist-text">Calculando ruta...</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Proximity Alert Banner (Activates when driver < 250m) -->
+      <div id="track-proximity-alert" class="hidden p-4 rounded-2xl bg-emerald-500 text-white font-bold text-xs shadow-lg shadow-emerald-500/20 flex items-center justify-between animate-bounce">
+        <div class="flex items-center gap-2.5">
+          <div class="w-8 h-8 rounded-xl bg-white text-emerald-600 flex items-center justify-center text-sm font-black shadow-md">
+            <i class="fa-solid fa-bell"></i>
+          </div>
+          <div>
+            <span class="block font-black text-sm">¡El repartidor ya está en tu puerta!</span>
+            <span class="text-[11px] text-emerald-100 font-normal">Alista el código PIN OTP de 4 dígitos para recibir tu pedido.</span>
+          </div>
+        </div>
       </div>
 
       <!-- Status Progress Bar & OTP Box -->
@@ -362,10 +390,13 @@
             <h3 id="track-status-title" class="text-lg font-black text-slate-900 dark:text-white">En camino a tu dirección</h3>
           </div>
           
-          <!-- OTP Code for Safe Delivery in Yopal -->
+          <!-- OTP Code for Safe Delivery in Yopal with 1-Touch Copy -->
           <div class="text-right">
             <span class="text-[10px] uppercase font-bold text-slate-400 block">PIN de Entrega</span>
-            <span id="track-otp-code" class="text-xl font-black tracking-widest text-emerald-600 bg-emerald-50 dark:bg-emerald-950/40 px-3 py-1 rounded-xl border border-emerald-200 dark:border-emerald-800 inline-block">4892</span>
+            <button onclick="copyTrackOtp()" title="Toca para copiar PIN" class="group flex items-center gap-1.5 bg-emerald-50 dark:bg-emerald-950/40 hover:bg-emerald-100 dark:hover:bg-emerald-900/60 px-3 py-1.5 rounded-xl border border-emerald-200 dark:border-emerald-800 cursor-pointer transition-all">
+              <span id="track-otp-code" class="text-xl font-black tracking-widest text-emerald-600 dark:text-emerald-400">4892</span>
+              <i class="fa-regular fa-copy text-xs text-emerald-600 group-hover:scale-110 transition-transform"></i>
+            </button>
           </div>
         </div>
 
@@ -691,6 +722,55 @@
         </div>
         <p class="text-[10px] text-slate-500 dark:text-slate-400 leading-tight">
           Envía desde <strong>Nequi, Daviplata, Bancolombia, Nu, Davivienda</strong> o cualquier banco sin costo de transferencia.
+        </p>
+      </div>
+
+      <!-- PSE Bank Selection Box (When PSE is Selected) -->
+      <div id="pse-bank-box" class="hidden p-3.5 bg-blue-50 dark:bg-blue-950/40 rounded-2xl border border-blue-200 dark:border-blue-800 text-xs space-y-3">
+        <div class="flex items-center justify-between">
+          <span class="font-extrabold text-blue-800 dark:text-blue-300 flex items-center gap-1.5">
+            <i class="fa-solid fa-building-columns"></i> Pagos Seguros en Línea (PSE)
+          </span>
+          <span class="text-[10px] font-black text-blue-600 bg-blue-100 dark:bg-blue-900/60 px-2 py-0.5 rounded-full">ACH Colombia</span>
+        </div>
+
+        <div class="space-y-2">
+          <div>
+            <label class="text-[11px] font-bold text-slate-700 dark:text-slate-300 block mb-1">Selecciona tu Banco:</label>
+            <select id="pse-bank-select" class="w-full px-3 py-2 bg-white dark:bg-slate-800 border border-blue-300 dark:border-blue-700 rounded-xl text-xs font-bold text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500">
+              <option value="bancolombia">🟡 Bancolombia / A la mano</option>
+              <option value="nequi">🟣 Nequi</option>
+              <option value="davivienda">🔴 Davivienda</option>
+              <option value="daviplata">🔴 Daviplata</option>
+              <option value="banco_bogota">🔵 Banco de Bogotá</option>
+              <option value="bbva">🔵 BBVA Colombia</option>
+              <option value="nu">💜 Nu Colombia</option>
+              <option value="lulo">🟢 Lulo Bank</option>
+              <option value="occidente">🔵 Banco de Occidente</option>
+              <option value="scotiabank">🔴 Scotiabank Colpatria</option>
+              <option value="popular">🟢 Banco Popular</option>
+              <option value="av_villas">🔵 Banco AV Villas</option>
+              <option value="dale">🟠 Dale!</option>
+              <option value="caja_social">🔵 Banco Caja Social</option>
+            </select>
+          </div>
+
+          <div class="grid grid-cols-2 gap-2">
+            <div>
+              <label class="text-[10px] font-bold text-slate-600 dark:text-slate-400 block mb-0.5">Tipo Persona:</label>
+              <select id="pse-person-type" class="w-full px-2.5 py-1.5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-xs font-semibold text-slate-900 dark:text-white">
+                <option value="natural">Natural</option>
+                <option value="juridica">Jurídica</option>
+              </select>
+            </div>
+            <div>
+              <label class="text-[10px] font-bold text-slate-600 dark:text-slate-400 block mb-0.5">Documento (CC/NIT):</label>
+              <input type="text" id="pse-doc-number" placeholder="Ej: 1057590000" value="1057590000" class="w-full px-2.5 py-1.5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-xs font-bold text-slate-900 dark:text-white">
+            </div>
+          </div>
+        </div>
+        <p class="text-[10px] text-blue-700 dark:text-blue-300 leading-tight">
+          🔒 Serás redirigido a la pasarela segura de tu banco con débito automático inmediato.
         </p>
       </div>
 

@@ -109,6 +109,7 @@ router.post('/generate', (req, res) => {
 
     res.status(201).json({
       message: 'Intención de pago generada exitosamente',
+      reference_code: referenceCode,
       payment: createdPayment,
       instructions: {
         method: payment_method,
@@ -117,8 +118,8 @@ router.post('/generate', (req, res) => {
         reference: referenceCode,
         amount_cop: parseInt(amount_cop),
         step_1: `Abre tu app bancaria (Nequi, Daviplata, Bancolombia, Nu, etc.)`,
-        step_2: `Transfiere a la Llave Bre-B: ${keyValue}`,
-        step_3: `Coloca en la descripción la referencia: ${referenceCode}`
+        step_2: `Transfiere con Llave Bre-B a ${keyValue}`,
+        step_3: `Coloca el código de referencia ${referenceCode} en la descripción`
       }
     });
   } catch (err) {

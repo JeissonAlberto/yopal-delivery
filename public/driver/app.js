@@ -344,6 +344,14 @@ function updateMapForOrder() {
   driverMap.fitBounds(orderRouteLayer.getBounds(), { padding: [60, 60] });
 }
 
+function calculateBearing(lat1, lon1, lat2, lon2) {
+  const y = Math.sin((lon2 - lon1) * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180);
+  const x = Math.cos(lat1 * Math.PI / 180) * Math.sin(lat2 * Math.PI / 180) -
+            Math.sin(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * Math.cos((lon2 - lon1) * Math.PI / 180);
+  const brng = Math.atan2(y, x) * 180 / Math.PI;
+  return Math.round((brng + 360) % 360);
+}
+
 function startSimulatingTripToClient() {
   if (simInterval) clearInterval(simInterval);
   let step = 0;
@@ -352,6 +360,7 @@ function startSimulatingTripToClient() {
   const startLng = driverLocation.lng;
   const endLat = currentOrder.delivery_lat;
   const endLng = currentOrder.delivery_lng;
+  const heading = calculateBearing(startLat, startLng, endLat, endLng);
 
   simInterval = setInterval(() => {
     step++;
@@ -369,7 +378,7 @@ function startSimulatingTripToClient() {
         orderId: currentOrder ? currentOrder.id : null,
         lat: driverLocation.lat,
         lng: driverLocation.lng,
-        heading: 90,
+        heading: heading,
         speed: 35
       });
     }

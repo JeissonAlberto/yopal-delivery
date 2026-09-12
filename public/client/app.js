@@ -59,10 +59,46 @@ function initSocket() {
   });
 
   socket.on('driver:location_changed', (data) => {
-    if (trackingDriverMarker && data.lat && data.lng) {
-      trackingDriverMarker.setLatLng([data.lat, data.lng]);
-      if (trackingMap) {
-        trackingMap.panTo([data.lat, data.lng]);
+    if (data.lat && data.lng) {
+      if (trackingDriverMarker) {
+        trackingDriverMarker.setLatLng([data.lat, data.lng]);
+        
+        // Rotar el icono de la moto según el rumbo (heading/bearing)
+        const motoEl = document.getElementById('map-live-driver-moto');
+        if (motoEl && data.heading != null) {
+          motoEl.style.transform = `rotate(${data.heading}deg)`;
+        }
+      }
+
+      // Actualizar la polilínea de ruta
+      if (trackingRouteLine && userLocation && userLocation.lat) {
+        trackingRouteLine.setLatLngs([[data.lat, data.lng], [userLocation.lat, userLocation.lng]]);
+      }
+
+      // Actualizar velocímetro
+      const speedPill = document.getElementById('track-speed-pill');
+      if (speedPill) {
+        const speedKmh = data.speed ? Math.round(data.speed * 3.6) : 32;
+        speedPill.textContent = `🛵 ${speedKmh} km/h`;
+      }
+
+      // Calcular distancia y alerta de proximidad
+      if (userLocation && userLocation.lat) {
+        const distKm = calculateDistanceKm(data.lat, data.lng, userLocation.lat, userLocation.lng);
+        const distText = document.getElementById('track-dist-text');
+        if (distText) {
+          distText.textContent = distKm < 1 ? `A ${Math.round(distKm * 1000)} metros de tu casa` : `A ${distKm.toFixed(1)} km de tu casa`;
+        }
+
+        // Si está a menos de 250m, disparar alerta de llegada
+        if (distKm <= 0.25) {
+          const proxBanner = document.getElementById('track-proximity-alert');
+          if (proxBanner && proxBanner.classList.contains('hidden')) {
+            proxBanner.classList.remove('hidden');
+            playSuccessChime();
+            if (navigator.vibrate) navigator.vibrate([200, 100, 200, 100, 400]);
+          }
+        }
       }
     }
   });
@@ -892,11 +928,17 @@ function handlePaymentMethodChange() {
   const method = selected.value;
 
   const brebBox = document.getElementById('bre-b-info-box');
+  const pseBox = document.getElementById('pse-bank-box');
   const cashBox = document.getElementById('cash-change-box');
 
   if (brebBox) {
     if (method === 'bre_b') brebBox.classList.remove('hidden');
     else brebBox.classList.add('hidden');
+  }
+
+  if (pseBox) {
+    if (method === 'wompi_pse') pseBox.classList.remove('hidden');
+    else pseBox.classList.add('hidden');
   }
 
   if (cashBox) {
@@ -1032,6 +1074,17 @@ async function loadOrderTrackingData() {
   }
 }
 
+let trackingRouteLine = null;
+
+function copyTrackOtp() {
+  const code = document.getElementById('track-otp-code').textContent.trim();
+  if (navigator.clipboard) {
+    navigator.clipboard.writeText(code);
+  }
+  playPopSound();
+  alert(`¡PIN OTP ${code} copiado al portapapeles! Díctaselo al domiciliario al recibir tu pedido.`);
+}
+
 function initTrackingMap(order) {
   if (trackingMap) {
     trackingMap.remove();
@@ -1040,7 +1093,8 @@ function initTrackingMap(order) {
   const centerLat = (order.merchant_lat + order.delivery_lat) / 2;
   const centerLng = (order.merchant_lng + order.delivery_lng) / 2;
 
-  trackingMap = L.map('tracking-map').setView([centerLat, centerLng], 14);
+  trackingMap = L.map('tracking-map', { zoomControl: false }).setView([centerLat, centerLng], 14);
+  L.control.zoom({ position: 'topright' }).addTo(trackingMap);
 
   let tileLayer = window.getLupinMapTileLayer ? window.getLupinMapTileLayer() : L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', { maxZoom: 19 });
   tileLayer.addTo(trackingMap);
@@ -1053,43 +1107,55 @@ function initTrackingMap(order) {
     }
   });
 
-  // Marcador Comercio (Naranja LUPIN)
+  // Marcador Comercio (Naranja LUPIN con sombra de asadero)
   const mIcon = L.divIcon({
-    html: `<div style="background:#ea580c; color:white; width:32px; height:32px; border-radius:50%; display:flex; align-items:center; justify-content:center; box-shadow:0 2px 6px rgba(0,0,0,0.3); border:2px solid white;"><i class="fa-solid fa-utensils"></i></div>`,
-    className: '',
-    iconSize: [32, 32],
-    iconAnchor: [16, 16]
-  });
-  L.marker([order.merchant_lat, order.merchant_lng], { icon: mIcon }).addTo(trackingMap).bindPopup(`<b>${order.merchant_name}</b>`);
-
-  // Marcador Cliente Destino (Verde Esmeralda)
-  const cIcon = L.divIcon({
-    html: `<div style="background:#10b981; color:white; width:32px; height:32px; border-radius:50%; display:flex; align-items:center; justify-content:center; box-shadow:0 2px 6px rgba(0,0,0,0.3); border:2px solid white;"><i class="fa-solid fa-house-chimney"></i></div>`,
-    className: '',
-    iconSize: [32, 32],
-    iconAnchor: [16, 16]
-  });
-  L.marker([order.delivery_lat, order.delivery_lng], { icon: cIcon }).addTo(trackingMap).bindPopup(`<b>Tu Ubicación</b><br>${order.delivery_address}`);
-
-  // Marcador Repartidor Móvil (Naranja con pulso)
-  const driverLat = order.driver_lat || order.merchant_lat;
-  const driverLng = order.driver_lng || order.merchant_lng;
-
-  const dIcon = L.divIcon({
-    html: `<div style="background:#ea580c; color:white; width:36px; height:36px; border-radius:50%; display:flex; align-items:center; justify-content:center; box-shadow:0 0 10px #ea580c; border:2px solid white;"><i class="fa-solid fa-motorcycle text-sm"></i></div>`,
+    html: `<div style="background:#ea580c; color:white; width:36px; height:36px; border-radius:50%; display:flex; align-items:center; justify-content:center; box-shadow:0 4px 10px rgba(234,88,12,0.4); border:2.5px solid white;"><i class="fa-solid fa-utensils text-sm"></i></div>`,
     className: '',
     iconSize: [36, 36],
     iconAnchor: [18, 18]
   });
-  trackingDriverMarker = L.marker([driverLat, driverLng], { icon: dIcon }).addTo(trackingMap).bindPopup(`<b>Repartidor en Camino</b>`);
+  L.marker([order.merchant_lat, order.merchant_lng], { icon: mIcon }).addTo(trackingMap).bindPopup(`<b>${order.merchant_name}</b><br>Punto de Preparación`);
 
-  // Línea de ruta (Naranja)
-  L.polyline([[order.merchant_lat, order.merchant_lng], [order.delivery_lat, order.delivery_lng]], {
+  // Marcador Cliente Destino (Verde Esmeralda)
+  const cIcon = L.divIcon({
+    html: `<div style="background:#10b981; color:white; width:36px; height:36px; border-radius:50%; display:flex; align-items:center; justify-content:center; box-shadow:0 4px 10px rgba(16,185,129,0.4); border:2.5px solid white;"><i class="fa-solid fa-house-chimney text-sm"></i></div>`,
+    className: '',
+    iconSize: [36, 36],
+    iconAnchor: [18, 18]
+  });
+  L.marker([order.delivery_lat, order.delivery_lng], { icon: cIcon }).addTo(trackingMap).bindPopup(`<b>Tu Ubicación de Entrega</b><br>${order.delivery_address}`);
+
+  // Marcador Repartidor Móvil (Naranja con pulso y rotación)
+  const driverLat = order.driver_lat || order.merchant_lat;
+  const driverLng = order.driver_lng || order.merchant_lng;
+
+  const dIcon = L.divIcon({
+    html: `<div id="map-live-driver-moto" style="background:#ea580c; color:white; width:42px; height:42px; border-radius:50%; display:flex; align-items:center; justify-content:center; box-shadow:0 0 14px #ea580c; border:3px solid white; transition: transform 0.4s ease;"><i class="fa-solid fa-motorcycle text-base"></i></div>`,
+    className: '',
+    iconSize: [42, 42],
+    iconAnchor: [21, 21]
+  });
+  trackingDriverMarker = L.marker([driverLat, driverLng], { icon: dIcon }).addTo(trackingMap).bindPopup(`<b>Repartidor en Ruta</b>`);
+
+  // Línea de ruta dinámica
+  trackingRouteLine = L.polyline([[driverLat, driverLng], [order.delivery_lat, order.delivery_lng]], {
     color: '#ea580c',
-    weight: 3,
-    dashArray: '6, 8',
-    opacity: 0.8
+    weight: 4,
+    dashArray: '8, 8',
+    opacity: 0.9
   }).addTo(trackingMap);
+
+  // Calcular distancia inicial y telemetría
+  const distKm = calculateDistanceKm(driverLat, driverLng, order.delivery_lat, order.delivery_lng);
+  const distEl = document.getElementById('track-dist-text');
+  if (distEl) {
+    distEl.textContent = distKm < 1 ? `A ${Math.round(distKm * 1000)} metros de tu casa` : `A ${distKm.toFixed(1)} km de tu casa`;
+  }
+
+  // Ajustar encuadre del mapa para ver toda la ruta
+  try {
+    trackingMap.fitBounds([[driverLat, driverLng], [order.delivery_lat, order.delivery_lng]], { padding: [40, 40] });
+  } catch(e) {}
 
   setTimeout(() => { if (trackingMap) trackingMap.invalidateSize(); }, 200);
 }
