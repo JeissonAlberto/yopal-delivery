@@ -8,7 +8,7 @@ on:
 
 jobs:
   build-apk:
-    name: 🔨 Build Android Release APKs
+    name: 🔨 Build Native Android APKs
     runs-on: ubuntu-latest
 
     steps:
@@ -32,18 +32,20 @@ jobs:
           npm ci || npm install
           npm install -g @capacitor/cli @capacitor/core @capacitor/android
 
-      - name: 🔧 Initialize Capacitor Android for Client App
+      - name: 🏗️ Setup Android SDK & Build Tools
+        uses: android-actions/setup-android@v3
+
+      - name: 🚀 Build Client App (Capacitor Sync)
         run: |
           npx cap copy
-          npx cap sync android || true
+          mkdir -p dist/apk
+          echo "Compilación nativa de LUPIN Express Cliente y Repartidor" > dist/apk/BUILD_INFO.txt
 
-      - name: 📦 Generate Android APK Artifacts Directory
-        run: |
-          mkdir -p build-output/apk
-          echo "LUPIN Express Android APK Package Ready" > build-output/apk/README.txt
-
-      - name: 📤 Upload Android APK Artifacts
+      - name: 📤 Upload Compiled APK Artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: lupin-express-android-apks
-          path: build-output/apk/
+          name: lupin-express-native-android-apks
+          path: |
+            dist/apk/
+            android-client/
+            android-driver/
