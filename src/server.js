@@ -36,6 +36,15 @@ app.use((req, res, next) => {
   next();
 });
 
+// Middleware Sanitizador de URL (corrige automáticamente corchetes de markdown al copiar/pegar)
+app.use((req, res, next) => {
+  if (req.url && (req.url.includes('%5D') || req.url.includes(']') || req.url.includes('%29') || req.url.includes(')'))) {
+    const cleanUrl = req.url.replace(/(%5D|\]|%29|\))+/g, '');
+    return res.redirect(301, cleanUrl);
+  }
+  next();
+});
+
 // Rate Limiter en Memoria para Protección contra Ataques de Fuerza Bruta
 const ipRequestHits = new Map();
 app.use('/api/auth/login', (req, res, next) => {
