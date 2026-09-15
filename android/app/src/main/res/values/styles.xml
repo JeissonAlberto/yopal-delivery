@@ -1,0 +1,12 @@
+<resources>
+    <style name="Theme.LupinExpress" parent="Theme.MaterialComponents.DayNight.NoActionBar">
+        <item name="colorPrimary">#EA580C</item>
+        <item name="colorPrimaryVariant">#C2410C</item>
+        <item name="colorOnPrimary">#FFFFFF</item>
+        <item name="colorSecondary">#10B981</item>
+        <item name="colorSecondaryVariant">#059669</item>
+        <item name="colorOnSecondary">#FFFFFF</item>
+        <item name="android:statusBarColor">#EA580C</item>
+        <item name="android:navigationBarColor">#090D16</item>
+    </style>
+</resources>
