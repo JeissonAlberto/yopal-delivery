@@ -86,6 +86,13 @@
     <!-- View 1: Home / Browse Feed -->
     <div id="view-home" class="space-y-4">
       
+      <!-- 1. Universal Search Bar (Always at the Very Top) -->
+      <div class="relative">
+        <i class="fa-solid fa-magnifying-glass absolute left-4 top-3.5 text-orange-600 text-base"></i>
+        <input type="text" id="search-input" onkeyup="handleSearch()" placeholder="¿Qué buscas hoy en Yopal? (Carne llanera, medicamentos, ferretería, hamburguesas...)" 
+               class="w-full pl-11 pr-4 py-3 bg-white dark:bg-slate-900 border-2 border-slate-200 dark:border-slate-800 hover:border-orange-500 focus:border-orange-600 dark:focus:border-orange-500 rounded-2xl text-sm font-semibold text-slate-900 dark:text-white focus:outline-none focus:ring-4 focus:ring-orange-600/15 shadow-sm transition-all">
+      </div>
+
       <!-- VIP Membership & Loyalty Status Bar (Ultra Visual) -->
       <div class="bg-gradient-to-r from-amber-500/15 via-orange-500/15 to-emerald-500/15 border border-amber-500/30 rounded-2xl p-3 flex items-center justify-between shadow-sm">
         <div class="flex items-center gap-2.5">
@@ -189,13 +196,6 @@
         </div>
       </div>
 
-      <!-- Search Bar -->
-      <div class="relative">
-        <i class="fa-solid fa-magnifying-glass absolute left-4 top-3.5 text-slate-400"></i>
-        <input type="text" id="search-input" onkeyup="handleSearch()" placeholder="¿Qué se te antoja hoy en Yopal? (Mamona, hamburguesa, buñuelos...)" 
-               class="w-full pl-11 pr-4 py-3 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl text-sm font-medium text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-orange-600 shadow-sm transition-all">
-      </div>
-
       <!-- Categories Pills -->
       <div class="flex gap-2 overflow-x-auto pb-1 scrollbar-none text-xs font-bold" id="category-pills">
         <button onclick="filterCategory('Todos')" class="cat-pill active px-4 py-2 rounded-full bg-orange-600 text-white shadow-md shadow-orange-600/20 whitespace-nowrap transition-all cursor-pointer">
@@ -245,14 +245,38 @@
         <button class="px-3 py-1.5 bg-white text-emerald-600 font-bold text-xs rounded-xl shadow">Ver Mapa</button>
       </div>
 
-      <!-- Merchants Grid -->
+      <!-- Merchants Grid & Map View Header -->
       <div>
         <div class="flex items-center justify-between mb-4">
-          <h2 class="text-base font-extrabold text-slate-900 dark:text-white">Restaurantes & Comercios en Yopal</h2>
-          <span id="merchants-count" class="text-xs text-slate-500 dark:text-slate-400">Cargando...</span>
+          <div class="flex items-center gap-2">
+            <h2 class="text-base font-extrabold text-slate-900 dark:text-white">Comercios en Yopal</h2>
+            <span id="merchants-count" class="text-xs text-slate-500 dark:text-slate-400">Cargando...</span>
+          </div>
+          
+          <!-- View Switcher (List vs Map Mode) -->
+          <div class="flex items-center gap-1 bg-slate-100 dark:bg-slate-800 p-1 rounded-xl border border-slate-200 dark:border-slate-700">
+            <button onclick="switchMerchantsDisplay('list')" id="btn-disp-list" class="px-3 py-1.5 rounded-lg bg-white dark:bg-slate-700 text-orange-600 dark:text-orange-400 font-black text-xs shadow-sm cursor-pointer transition-all">
+              <i class="fa-solid fa-list mr-1"></i> Lista
+            </button>
+            <button onclick="switchMerchantsDisplay('map')" id="btn-disp-map" class="px-3 py-1.5 rounded-lg text-slate-600 dark:text-slate-400 hover:text-orange-600 font-bold text-xs cursor-pointer transition-all">
+              <i class="fa-solid fa-map-location-dot mr-1"></i> Mapa de Yopal
+            </button>
+          </div>
         </div>
+
+        <!-- 1. List View of Merchants -->
         <div id="merchants-grid" class="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <!-- Injected dynamically -->
+        </div>
+
+        <!-- 2. Interactive Map View of All Merchants -->
+        <div id="merchants-map-container" class="hidden space-y-3">
+          <div class="rounded-3xl border border-slate-200 dark:border-slate-800 overflow-hidden shadow-sm">
+            <div id="all-merchants-map" class="w-full h-80 sm:h-96 z-10"></div>
+          </div>
+          <p class="text-xs text-slate-500 dark:text-slate-400 text-center">
+            📍 Toca cualquier pin en el mapa para ver la información y abrir el menú del comercio.
+          </p>
         </div>
       </div>
 
@@ -300,7 +324,9 @@
 
       <!-- Menu Products Grid -->
       <div>
-        <h2 class="text-base font-extrabold text-slate-900 dark:text-white mb-4">Platos Disponibles</h2>
+        <h2 class="text-base font-extrabold text-slate-900 dark:text-white mb-4 flex items-center gap-2">
+          <i class="fa-solid fa-boxes-stacked text-orange-600"></i> Productos Disponibles
+        </h2>
         <div id="m-products-grid" class="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <!-- Injected dynamically -->
         </div>

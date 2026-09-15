@@ -178,6 +178,93 @@ async function loadMerchants() {
   }
 }
 
+let allMerchantsMap = null;
+let allMerchantsMarkersGroup = null;
+let currentDisplayMode = 'list';
+
+function switchMerchantsDisplay(mode) {
+  currentDisplayMode = mode;
+  const listEl = document.getElementById('merchants-grid');
+  const mapContainer = document.getElementById('merchants-map-container');
+  const btnList = document.getElementById('btn-disp-list');
+  const btnMap = document.getElementById('btn-disp-map');
+
+  if (mode === 'map') {
+    listEl.classList.add('hidden');
+    mapContainer.classList.remove('hidden');
+    btnMap.className = 'px-3 py-1.5 rounded-lg bg-white dark:bg-slate-700 text-orange-600 dark:text-orange-400 font-black text-xs shadow-sm cursor-pointer transition-all';
+    btnList.className = 'px-3 py-1.5 rounded-lg text-slate-600 dark:text-slate-400 hover:text-orange-600 font-bold text-xs cursor-pointer transition-all';
+    setTimeout(initAllMerchantsMap, 150);
+  } else {
+    mapContainer.classList.add('hidden');
+    listEl.classList.remove('hidden');
+    btnList.className = 'px-3 py-1.5 rounded-lg bg-white dark:bg-slate-700 text-orange-600 dark:text-orange-400 font-black text-xs shadow-sm cursor-pointer transition-all';
+    btnMap.className = 'px-3 py-1.5 rounded-lg text-slate-600 dark:text-slate-400 hover:text-orange-600 font-bold text-xs cursor-pointer transition-all';
+  }
+}
+
+function initAllMerchantsMap() {
+  if (!allMerchantsMap) {
+    allMerchantsMap = L.map('all-merchants-map', { zoomControl: false }).setView([userLocation.lat, userLocation.lng], 14);
+    L.control.zoom({ position: 'topright' }).addTo(allMerchantsMap);
+    let tileLayer = window.getLupinMapTileLayer ? window.getLupinMapTileLayer() : L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', { maxZoom: 19 });
+    tileLayer.addTo(allMerchantsMap);
+    allMerchantsMarkersGroup = L.layerGroup().addTo(allMerchantsMap);
+  } else {
+    allMerchantsMap.invalidateSize();
+  }
+
+  renderMerchantsOnMap();
+}
+
+function renderMerchantsOnMap() {
+  if (!allMerchantsMap || !allMerchantsMarkersGroup) return;
+  allMerchantsMarkersGroup.clearLayers();
+
+  const uIcon = L.divIcon({
+    html: `<div style="background:#10b981; color:white; width:28px; height:28px; border-radius:50%; display:flex; align-items:center; justify-content:center; box-shadow:0 0 10px #10b981; border:2px solid white;"><i class="fa-solid fa-person text-xs"></i></div>`,
+    className: '',
+    iconSize: [28, 28],
+    iconAnchor: [14, 14]
+  });
+  L.marker([userLocation.lat, userLocation.lng], { icon: uIcon }).addTo(allMerchantsMarkersGroup).bindPopup('<b>Tu Ubicación</b><br>' + userLocation.address);
+
+  allMerchants.forEach(m => {
+    let iconClass = 'fa-utensils';
+    if (m.category && m.category.includes('Farmacia')) iconClass = 'fa-prescription-bottle-medical';
+    if (m.category && m.category.includes('Hotel')) iconClass = 'fa-hotel';
+    if (m.category && m.category.includes('Ferretería')) iconClass = 'fa-wrench';
+    if (m.category && m.category.includes('Supermercado')) iconClass = 'fa-cart-shopping';
+    if (m.category && m.category.includes('Veterinaria')) iconClass = 'fa-shield-dog';
+
+    const mIcon = L.divIcon({
+      html: `<div style="background:#ea580c; color:white; width:34px; height:34px; border-radius:50%; display:flex; align-items:center; justify-content:center; box-shadow:0 3px 8px rgba(234,88,12,0.4); border:2px solid white; cursor:pointer;"><i class="fa-solid ${iconClass} text-xs"></i></div>`,
+      className: '',
+      iconSize: [34, 34],
+      iconAnchor: [17, 17]
+    });
+
+    const popupContent = `
+      <div style="font-family:'Plus Jakarta Sans',sans-serif; min-width:180px;">
+        <span style="color:#ea580c; font-size:10px; font-weight:800; text-transform:uppercase;">${m.category}</span>
+        <h4 style="margin:2px 0; font-size:13px; font-weight:800; color:#0f172a;">${m.name}</h4>
+        <p style="margin:2px 0 6px; font-size:11px; color:#64748b;">${m.address}</p>
+        <div style="display:flex; justify-content:space-between; font-size:11px; font-weight:700; margin-bottom:8px;">
+          <span>⭐ ${m.rating}</span>
+          <span>🛵 ${formatCOP(m.deliveryFee || 4000)}</span>
+        </div>
+        <button onclick="openMerchantDetail('${m.id}')" style="width:100%; background:#ea580c; color:white; border:none; padding:6px; border-radius:8px; font-weight:800; font-size:11px; cursor:pointer;">
+          Ver Productos ➔
+        </button>
+      </div>
+    `;
+
+    L.marker([m.lat, m.lng], { icon: mIcon }).addTo(allMerchantsMarkersGroup).bindPopup(popupContent);
+  });
+
+  setTimeout(() => { if (allMerchantsMap) allMerchantsMap.invalidateSize(); }, 150);
+}
+
 function renderMerchants() {
   const grid = document.getElementById('merchants-grid');
   const countSpan = document.getElementById('merchants-count');
@@ -186,6 +273,10 @@ function renderMerchants() {
   if (allMerchants.length === 0) {
     grid.innerHTML = `<div class="col-span-2 text-center py-12 text-slate-400 text-sm">No se encontraron comercios en esta categoría en Yopal.</div>`;
     return;
+  }
+
+  if (allMerchantsMap && currentDisplayMode === 'map') {
+    renderMerchantsOnMap();
   }
 
   grid.innerHTML = allMerchants.map(m => `
@@ -285,8 +376,8 @@ async function openMerchantDetail(merchantId) {
           </div>
           <div class="mt-3 flex items-center justify-between">
             <span class="font-black text-slate-900 dark:text-white text-sm">${formatCOP(p.price)}</span>
-            <button onclick="openCustomizer('${p.id}')" class="btn-spring px-3.5 py-1.5 bg-orange-600 hover:bg-orange-700 text-white font-bold text-xs rounded-xl shadow-md shadow-orange-600/20 flex items-center gap-1 cursor-pointer">
-              <i class="fa-solid fa-plus"></i> Personalizar
+            <button onclick="openCustomizer('${p.id}')" class="btn-spring px-3.5 py-1.5 bg-orange-600 hover:bg-orange-700 text-white font-bold text-xs rounded-xl shadow-md shadow-orange-600/20 flex items-center gap-1.5 cursor-pointer">
+              <i class="fa-solid fa-plus text-[11px]"></i> Agregar / Opciones
             </button>
           </div>
         </div>

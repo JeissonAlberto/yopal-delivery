@@ -73,14 +73,17 @@
   </header>
 
   <!-- Navigation Tabs -->
-  <div class="px-6 border-b border-slate-800 bg-slate-800/40 flex gap-6 text-sm font-semibold">
-    <button onclick="switchTab('kanban')" id="tab-btn-kanban" class="py-3 border-b-2 border-emerald-500 text-emerald-400 flex items-center gap-2 cursor-pointer">
+  <div class="px-6 border-b border-slate-800 bg-slate-800/40 flex gap-6 text-sm font-semibold overflow-x-auto">
+    <button onclick="switchTab('kanban')" id="tab-btn-kanban" class="py-3 border-b-2 border-emerald-500 text-emerald-400 flex items-center gap-2 cursor-pointer whitespace-nowrap">
       <i class="fa-solid fa-fire-burner"></i> Comandas & Cocina en Vivo
     </button>
-    <button onclick="switchTab('catalog')" id="tab-btn-catalog" class="py-3 border-b-2 border-transparent text-slate-400 hover:text-slate-200 flex items-center gap-2 cursor-pointer">
-      <i class="fa-solid fa-book-open"></i> Menú & Platos
+    <button onclick="switchTab('catalog')" id="tab-btn-catalog" class="py-3 border-b-2 border-transparent text-slate-400 hover:text-slate-200 flex items-center gap-2 cursor-pointer whitespace-nowrap">
+      <i class="fa-solid fa-book-open"></i> Menú & Productos
     </button>
-    <button onclick="switchTab('reputation')" id="tab-btn-reputation" class="py-3 border-b-2 border-transparent text-slate-400 hover:text-slate-200 flex items-center gap-2 cursor-pointer">
+    <button onclick="switchTab('wallet')" id="tab-btn-wallet" class="py-3 border-b-2 border-transparent text-slate-400 hover:text-slate-200 flex items-center gap-2 cursor-pointer whitespace-nowrap">
+      <i class="fa-solid fa-wallet text-emerald-400"></i> Billetera & Liquidaciones
+    </button>
+    <button onclick="switchTab('reputation')" id="tab-btn-reputation" class="py-3 border-b-2 border-transparent text-slate-400 hover:text-slate-200 flex items-center gap-2 cursor-pointer whitespace-nowrap">
       <i class="fa-solid fa-star text-amber-400"></i> Reputación & Críticas
     </button>
   </div>
@@ -169,7 +172,66 @@
       <div id="catalog-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"></div>
     </div>
 
-    <!-- Tab 3: Reputation & Constructive Reviews -->
+    <!-- Tab 3: Billetera & Liquidaciones para Comercios -->
+    <div id="tab-wallet" class="hidden space-y-6">
+      <div class="flex items-center justify-between">
+        <div>
+          <h2 class="text-lg font-black text-slate-900 dark:text-white flex items-center gap-2">
+            <i class="fa-solid fa-wallet text-emerald-500"></i> Billetera del Comercio & Liquidaciones
+          </h2>
+          <p class="text-xs text-slate-500 dark:text-slate-400">Control de ventas diarias, deducción de comisión (12%) y transferencias a Nequi / Banco</p>
+        </div>
+      </div>
+
+      <!-- Financial KPI Cards -->
+      <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        <div class="bg-white dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700/80 rounded-2xl p-5 space-y-1">
+          <span class="text-xs font-bold text-slate-400 uppercase tracking-wider block">Ventas Brutas de Hoy</span>
+          <p id="mch-gross-sales" class="text-2xl font-black text-slate-900 dark:text-white">$0 COP</p>
+          <span class="text-[10px] text-slate-400">Total recaudado por pedidos finalizados</span>
+        </div>
+
+        <div class="bg-white dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700/80 rounded-2xl p-5 space-y-1">
+          <span class="text-xs font-bold text-slate-400 uppercase tracking-wider block">Comisión Plataforma (12%)</span>
+          <p id="mch-platform-fee" class="text-2xl font-black text-orange-600 dark:text-orange-400">$0 COP</p>
+          <span class="text-[10px] text-slate-400">Tarifa operativa LUPIN Express</span>
+        </div>
+
+        <div class="bg-gradient-to-tr from-emerald-950/40 to-slate-900 border border-emerald-500/40 rounded-2xl p-5 space-y-1">
+          <div class="flex items-center justify-between">
+            <span class="text-xs font-bold text-emerald-400 uppercase tracking-wider block">Saldo Neto Disponible</span>
+            <span class="px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 text-[9px] font-black">Transferible</span>
+          </div>
+          <p id="mch-net-payout" class="text-2xl font-black text-emerald-400">$0 COP</p>
+          <span class="text-[10px] text-emerald-200/60">Dinero listo para transferir a tu cuenta</span>
+        </div>
+      </div>
+
+      <!-- Withdrawal Form -->
+      <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-6 space-y-4 max-w-xl">
+        <h3 class="text-base font-bold text-slate-900 dark:text-white flex items-center gap-2">
+          <i class="fa-solid fa-money-bill-transfer text-emerald-500"></i> Solicitar Transferencia Inmediata
+        </h3>
+
+        <div class="space-y-3">
+          <div>
+            <label class="text-xs font-bold text-slate-700 dark:text-slate-300 block mb-1">Cuenta de Destino (Nequi / Bancolombia / Bre-B):</label>
+            <input type="text" id="mch-payout-account" placeholder="Ej: Nequi 3123456781 o Cta Ahorros Bancolombia" class="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-xs font-bold text-slate-900 dark:text-white">
+          </div>
+
+          <div>
+            <label class="text-xs font-bold text-slate-700 dark:text-slate-300 block mb-1">Monto a Liquidar (COP):</label>
+            <input type="number" id="mch-payout-amount" placeholder="Monto a transferir" class="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-xs font-bold text-emerald-600 dark:text-emerald-400">
+          </div>
+
+          <button onclick="requestMerchantPayout()" class="w-full py-3 bg-emerald-600 hover:bg-emerald-700 text-white font-black text-xs rounded-xl shadow-lg shadow-emerald-600/20 transition-all cursor-pointer">
+            <i class="fa-solid fa-bolt"></i> Liquidar y Transferir a Mi Cuenta
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Tab 4: Reputation & Constructive Reviews -->
     <div id="tab-reputation" class="hidden space-y-6">
       <div class="flex items-center justify-between">
         <div>

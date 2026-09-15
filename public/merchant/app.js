@@ -305,27 +305,119 @@ async function toggleProductAvailability(productId) {
 function switchTab(tab) {
   const btnKanban = document.getElementById('tab-btn-kanban');
   const btnCatalog = document.getElementById('tab-btn-catalog');
+  const btnWallet = document.getElementById('tab-btn-wallet');
   const btnReputation = document.getElementById('tab-btn-reputation');
 
   const tabKanban = document.getElementById('tab-kanban');
   const tabCatalog = document.getElementById('tab-catalog');
+  const tabWallet = document.getElementById('tab-wallet');
   const tabReputation = document.getElementById('tab-reputation');
 
-  [tabKanban, tabCatalog, tabReputation].forEach(el => el && el.classList.add('hidden'));
-  [btnKanban, btnCatalog, btnReputation].forEach(b => b && (b.className = 'py-3 border-b-2 border-transparent text-slate-400 hover:text-slate-200 flex items-center gap-2 cursor-pointer'));
+  [tabKanban, tabCatalog, tabWallet, tabReputation].forEach(el => el && el.classList.add('hidden'));
+  [btnKanban, btnCatalog, btnWallet, btnReputation].forEach(b => b && (b.className = 'py-3 border-b-2 border-transparent text-slate-400 hover:text-slate-200 flex items-center gap-2 cursor-pointer whitespace-nowrap'));
 
   if (tab === 'kanban') {
     tabKanban.classList.remove('hidden');
-    btnKanban.className = 'py-3 border-b-2 border-emerald-500 text-emerald-400 flex items-center gap-2 cursor-pointer';
+    btnKanban.className = 'py-3 border-b-2 border-emerald-500 text-emerald-400 flex items-center gap-2 cursor-pointer whitespace-nowrap font-bold';
+    loadMerchantOrders();
   } else if (tab === 'catalog') {
     tabCatalog.classList.remove('hidden');
-    btnCatalog.className = 'py-3 border-b-2 border-emerald-500 text-emerald-400 flex items-center gap-2 cursor-pointer';
+    btnCatalog.className = 'py-3 border-b-2 border-emerald-500 text-emerald-400 flex items-center gap-2 cursor-pointer whitespace-nowrap font-bold';
     loadCatalog();
+  } else if (tab === 'wallet') {
+    if (tabWallet) tabWallet.classList.remove('hidden');
+    if (btnWallet) btnWallet.className = 'py-3 border-b-2 border-emerald-500 text-emerald-400 flex items-center gap-2 cursor-pointer whitespace-nowrap font-bold';
+    loadMerchantWallet();
   } else if (tab === 'reputation') {
     tabReputation.classList.remove('hidden');
-    btnReputation.className = 'py-3 border-b-2 border-amber-500 text-amber-400 flex items-center gap-2 cursor-pointer';
+    btnReputation.className = 'py-3 border-b-2 border-amber-500 text-amber-400 flex items-center gap-2 cursor-pointer whitespace-nowrap font-bold';
     loadMerchantReputation();
   }
+}
+
+function loadMerchantWallet() {
+  const validOrders = currentOrders.filter(o => o.status === 'delivered' || o.status === 'on_the_way' || o.status === 'ready_for_pickup');
+  const gross = validOrders.reduce((acc, o) => acc + (o.subtotal || 0), 0);
+  const fee = Math.round(gross * 0.12);
+  const net = gross - fee;
+
+  const elGross = document.getElementById('mch-gross-sales');
+  const elFee = document.getElementById('mch-platform-fee');
+  const elNet = document.getElementById('mch-net-payout');
+  const inputAmount = document.getElementById('mch-payout-amount');
+
+  if (elGross) elGross.textContent = formatCOP(gross);
+  if (elFee) elFee.textContent = formatCOP(fee);
+  if (elNet) elNet.textContent = formatCOP(net);
+  if (inputAmount && net > 0) inputAmount.value = net;
+}
+
+function requestMerchantPayout() {
+  const account = document.getElementById('mch-payout-account').value.trim();
+  const amount = parseInt(document.getElementById('mch-payout-amount').value) || 0;
+
+  if (!account) {
+    alert('Por favor ingresa tu número de cuenta o Nequi de destino');
+    return;
+  }
+  if (amount <= 0) {
+    alert('No hay saldo suficiente para liquidar en este momento');
+    return;
+  }
+
+  alert(`¡Solicitud de liquidación por ${formatCOP(amount)} enviada exitosamente a ${account}! La transferencia llegará en menos de 15 minutos vía Bre-B / Nequi.`);
+}
+
+function printKitchenReceipt(orderId) {
+  const o = currentOrders.find(x => x.id === orderId);
+  if (!o) return;
+
+  const printWindow = window.open('', '_blank', 'width=380,height=600');
+  printWindow.document.write(`
+    <html>
+      <head>
+        <title>Comanda #${o.order_number}</title>
+        <style>
+          body { font-family: 'Courier New', monospace; width: 280px; padding: 10px; margin: 0 auto; color: #000; font-size: 12px; }
+          h2 { text-align: center; margin: 0 0 4px; font-size: 16px; }
+          p { margin: 2px 0; }
+          .divider { border-top: 1px dashed #000; margin: 8px 0; }
+          .item { display: flex; justify-content: space-between; margin: 4px 0; }
+          .total { font-weight: bold; font-size: 14px; display: flex; justify-content: space-between; }
+          .notes { font-style: italic; background: #eee; padding: 4px; margin: 4px 0; font-size: 11px; }
+        </style>
+      </head>
+      <body>
+        <h2>${o.merchant_name || 'LUPIN EXPRESS'}</h2>
+        <p style="text-align:center;">Yopal, Casanare • Comanda Cocina</p>
+        <div class="divider"></div>
+        <p><b>Pedido:</b> #${o.order_number}</p>
+        <p><b>Fecha:</b> ${new Date(o.created_at).toLocaleTimeString('es-CO')}</p>
+        <p><b>Cliente:</b> ${o.client_name} (${o.client_phone})</p>
+        <p><b>Entrega:</b> ${o.delivery_address}</p>
+        <div class="divider"></div>
+        <h3>PRODUCTOS:</h3>
+        ${(o.items || []).map(i => `
+          <div class="item">
+            <span><b>${i.quantity}x</b> ${i.name || i.product_name}</span>
+            <span>${formatCOP((i.price || i.unit_price) * i.quantity)}</span>
+          </div>
+          ${i.specialNotes ? `<div class="notes">Nota: ${i.specialNotes}</div>` : ''}
+        `).join('')}
+        <div class="divider"></div>
+        <div class="total">
+          <span>SUBTOTAL:</span>
+          <span>${formatCOP(o.subtotal)}</span>
+        </div>
+        <p><b>Pago:</b> ${o.payment_method.toUpperCase()} ${o.payment_method === 'cash' ? `(Cambio p/ $${o.cash_amount_to_pay_with?.toLocaleString('es-CO')})` : ''}</p>
+        <div class="divider"></div>
+        <p style="text-align:center; font-weight:bold;">PIN OTP DE ENTREGA: ${o.delivery_otp || '****'}</p>
+      </body>
+    </html>
+  `);
+  printWindow.document.close();
+  printWindow.focus();
+  setTimeout(() => { printWindow.print(); }, 250);
 }
 
 async function loadMerchantReputation() {
