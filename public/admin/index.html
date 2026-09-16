@@ -65,6 +65,10 @@
           <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
           WebSockets Conectado
         </span>
+        <button onclick="simulateBurstOrders(1)" class="px-3 py-1.5 bg-orange-600 hover:bg-orange-500 text-white text-xs font-black rounded-lg shadow-sm flex items-center gap-1.5 cursor-pointer active:scale-95">
+          <i class="fa-solid fa-bolt"></i> Simular Pedido en Vivo
+        </button>
+
         <button onclick="refreshData()" class="px-3 py-1.5 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 text-xs font-semibold rounded-lg border border-slate-300 dark:border-slate-700 flex items-center gap-1.5 cursor-pointer">
           <i class="fa-solid fa-rotate text-orange-600"></i> Actualizar
         </button>
@@ -100,8 +104,18 @@
     </div>
   </div>
 
-  <!-- Main View Grid (Map on Left, Live Feed on Right) -->
-  <div class="flex-1 px-6 py-6 grid grid-cols-1 lg:grid-cols-12 gap-6">
+  <!-- Navigation Tabs -->
+  <div class="px-6 border-b border-slate-200 dark:border-slate-800 bg-white/40 dark:bg-slate-900/40 flex gap-6 text-sm font-semibold">
+    <button onclick="switchAdminTab('dispatch')" id="tab-btn-dispatch" class="py-3 border-b-2 border-orange-500 text-orange-600 dark:text-orange-400 font-black cursor-pointer flex items-center gap-2 transition-all">
+      <i class="fa-solid fa-map-location-dot"></i> Torre de Despacho & Radar
+    </button>
+    <button onclick="switchAdminTab('webhooks')" id="tab-btn-webhooks" class="py-3 text-slate-500 hover:text-slate-900 dark:hover:text-white font-bold cursor-pointer flex items-center gap-2 transition-all">
+      <i class="fa-solid fa-plug"></i> Integraciones & Webhooks API
+    </button>
+  </div>
+
+  <!-- Tab 1: Dispatch & Map -->
+  <div id="tab-dispatch" class="flex-1 px-6 py-6 grid grid-cols-1 lg:grid-cols-12 gap-6">
     
     <!-- Mapa en Vivo de Yopal (7 cols) -->
     <div class="lg:col-span-7 flex flex-col bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-4 shadow-sm">
@@ -169,6 +183,56 @@
 
   </div>
 
+  <!-- Tab 2: Webhooks & External API Integrations -->
+  <div id="tab-webhooks" class="hidden flex-1 px-6 py-6 space-y-6">
+    <div class="flex items-center justify-between flex-wrap gap-4">
+      <div>
+        <h2 class="text-lg font-black text-slate-900 dark:text-white flex items-center gap-2">
+          <i class="fa-solid fa-plug text-orange-600"></i> Integraciones & Webhooks API
+        </h2>
+        <p class="text-xs text-slate-500 dark:text-slate-400">Conecta LUPIN Express con sistemas POS, ERPs contables (SIIGO, Alegra) y Bots de WhatsApp en tiempo real</p>
+      </div>
+      <button onclick="openCreateWebhookModal()" class="px-4 py-2 bg-orange-600 hover:bg-orange-500 text-white font-black text-xs rounded-xl shadow-lg shadow-orange-600/30 flex items-center gap-2 cursor-pointer transition-all active:scale-95">
+        <i class="fa-solid fa-plus text-sm"></i> Registrar Nuevo Webhook
+      </button>
+    </div>
+
+    <!-- Webhooks Registered List -->
+    <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl overflow-hidden shadow-sm">
+      <div class="p-4 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between">
+        <h3 class="font-black text-sm text-slate-900 dark:text-white">Webhooks Activos</h3>
+        <span id="webhooks-count" class="px-2.5 py-0.5 bg-orange-500/20 text-orange-600 dark:text-orange-400 font-bold text-xs rounded-full">0 registrados</span>
+      </div>
+      <div id="webhooks-table-body" class="divide-y divide-slate-200 dark:divide-slate-800">
+        <!-- Injected dynamically -->
+      </div>
+    </div>
+
+    <!-- Integration Code Example Card -->
+    <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5 text-xs text-slate-300 space-y-3 font-mono">
+      <div class="flex items-center justify-between">
+        <span class="text-orange-400 font-bold">📡 Ejemplo de Payload Webhook (order.created / order.delivered):</span>
+        <span class="text-emerald-400 font-bold">HTTP 200 OK</span>
+      </div>
+      <pre class="bg-slate-950 p-4 rounded-xl overflow-x-auto text-[11px] text-slate-200 leading-relaxed">
+{
+  "event": "order.created",
+  "platform": "LUPIN Express • Yopal, Casanare",
+  "order": {
+    "order_number": "YPL-8492-1204",
+    "merchant_name": "Mamona & Tradición Llanera",
+    "client_name": "Carlos Rodríguez",
+    "delivery_address": "Carrera 20 # 14-22, La Campiña, Yopal",
+    "total_amount_cop": 42000,
+    "payment_method": "bre_b",
+    "status": "created",
+    "timestamp": "2026-09-16T12:00:00Z"
+  }
+}
+      </pre>
+    </div>
+  </div>
+
   <!-- Modal Despacho Manual -->
   <div id="dispatch-modal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
     <div class="bg-slate-900 border border-slate-800 rounded-2xl max-w-md w-full p-6 shadow-2xl">
@@ -188,6 +252,52 @@
       <div class="flex justify-end gap-3">
         <button onclick="closeDispatchModal()" class="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 text-sm font-semibold rounded-xl">Cancelar</button>
       </div>
+    </div>
+  </div>
+
+  <!-- Modal Registrar Webhook -->
+  <div id="modal-create-webhook" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+    <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl max-w-lg w-full p-6 shadow-2xl modal-anim-content space-y-4">
+      <div class="flex items-center justify-between pb-3 border-b border-slate-200 dark:border-slate-800">
+        <div class="flex items-center gap-2">
+          <div class="w-8 h-8 rounded-xl bg-orange-500/10 text-orange-600 flex items-center justify-center">
+            <i class="fa-solid fa-plug text-sm"></i>
+          </div>
+          <div>
+            <h3 class="text-base font-black text-slate-900 dark:text-white">Registrar Nuevo Webhook</h3>
+            <p class="text-xs text-slate-500 dark:text-slate-400">Recibe notificaciones HTTP POST instantáneas en tu servidor</p>
+          </div>
+        </div>
+        <button onclick="closeCreateWebhookModal()" class="w-8 h-8 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-500 hover:text-slate-800 dark:hover:text-white flex items-center justify-center cursor-pointer transition-all">
+          <i class="fa-solid fa-xmark text-sm"></i>
+        </button>
+      </div>
+
+      <form id="form-create-webhook" onsubmit="saveWebhookForm(event)" class="space-y-4">
+        <div>
+          <label class="block text-xs font-black text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-1">Nombre de la Integración *</label>
+          <input type="text" id="whk-name" required placeholder="Ej: SIIGO Contabilidad / Bot WhatsApp" class="w-full px-3.5 py-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm font-semibold text-slate-900 dark:text-white focus:outline-none focus:border-orange-500">
+        </div>
+
+        <div>
+          <label class="block text-xs font-black text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-1">URL Endpoint Destino (HTTP/HTTPS) *</label>
+          <input type="url" id="whk-url" required placeholder="https://api.tudominio.com/webhooks/lupin" class="w-full px-3.5 py-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm font-semibold text-slate-900 dark:text-white focus:outline-none focus:border-orange-500">
+        </div>
+
+        <div>
+          <label class="block text-xs font-black text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-1">Secreto de Firma (Opcional)</label>
+          <input type="text" id="whk-secret" placeholder="whsec_..." class="w-full px-3.5 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-xs font-semibold text-slate-900 dark:text-white focus:outline-none focus:border-orange-500">
+        </div>
+
+        <div class="pt-2 flex items-center justify-end gap-3">
+          <button type="button" onclick="closeCreateWebhookModal()" class="px-4 py-2.5 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 text-slate-700 dark:text-slate-300 font-bold text-xs rounded-xl cursor-pointer">
+            Cancelar
+          </button>
+          <button type="submit" class="px-5 py-2.5 bg-orange-600 hover:bg-orange-500 text-white font-black text-xs rounded-xl shadow-lg shadow-orange-600/30 flex items-center gap-2 cursor-pointer transition-all active:scale-95">
+            <i class="fa-solid fa-check"></i> Guardar Webhook
+          </button>
+        </div>
+      </form>
     </div>
   </div>
 

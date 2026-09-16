@@ -72,4 +72,15 @@ router.patch('/:id/toggle', (req, res) => {
   }
 });
 
+// Eliminar producto
+router.delete('/:id', (req, res) => {
+  try {
+    const { id } = req.params;
+    db.prepare('DELETE FROM products WHERE id = ?').run(id);
+    res.json({ success: true, message: 'Producto eliminado exitosamente' });
+  } catch (err) {
+    res.status(500).json({ error: 'Error eliminando producto' });
+  }
+});
+
 module.exports = router;

@@ -166,8 +166,16 @@
 
     <!-- Tab 2: Catalog & Dishes -->
     <div id="tab-catalog" class="hidden space-y-6">
-      <div class="flex items-center justify-between">
-        <h2 class="text-lg font-bold text-slate-900 dark:text-white">Catálogo de Productos del Comercio</h2>
+      <div class="flex items-center justify-between flex-wrap gap-4">
+        <div>
+          <h2 class="text-lg font-black text-slate-900 dark:text-white flex items-center gap-2">
+            <i class="fa-solid fa-boxes-stacked text-orange-600"></i> Catálogo & Productos
+          </h2>
+          <p class="text-xs text-slate-500 dark:text-slate-400">Administra disponibilidad, precios y agrega nuevos productos al instante</p>
+        </div>
+        <button onclick="openCreateProductModal()" class="px-4 py-2.5 bg-orange-600 hover:bg-orange-500 text-white font-black text-xs rounded-xl shadow-lg shadow-orange-600/30 flex items-center gap-2 cursor-pointer transition-all active:scale-95">
+          <i class="fa-solid fa-plus text-sm"></i> Crear Nuevo Producto / Plato
+        </button>
       </div>
       <div id="catalog-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"></div>
     </div>
@@ -248,6 +256,79 @@
       <!-- Reviews and Replies List -->
       <div id="merchant-reviews-container" class="space-y-4">
         <!-- Injected dynamically -->
+      </div>
+    </div>
+
+    <!-- Modal: Crear / Editar Producto Rápido -->
+    <div id="modal-create-product" class="hidden fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
+      <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl w-full max-w-lg p-6 shadow-2xl space-y-4 modal-anim-content max-h-[90vh] overflow-y-auto">
+        <div class="flex items-center justify-between pb-3 border-b border-slate-200 dark:border-slate-800">
+          <div class="flex items-center gap-2">
+            <div class="w-8 h-8 rounded-xl bg-orange-500/10 text-orange-600 flex items-center justify-center">
+              <i class="fa-solid fa-utensils text-sm"></i>
+            </div>
+            <div>
+              <h3 id="modal-product-title" class="text-base font-black text-slate-900 dark:text-white">Nuevo Producto / Plato</h3>
+              <p class="text-xs text-slate-500 dark:text-slate-400">Publica un producto en tu menú de Yopal en 30 segundos</p>
+            </div>
+          </div>
+          <button onclick="closeCreateProductModal()" class="w-8 h-8 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-500 hover:text-slate-800 dark:hover:text-white flex items-center justify-center cursor-pointer transition-all">
+            <i class="fa-solid fa-xmark text-sm"></i>
+          </button>
+        </div>
+
+        <form id="form-create-product" onsubmit="saveProductForm(event)" class="space-y-4">
+          <input type="hidden" id="prod-id" value="">
+          
+          <div>
+            <label class="block text-xs font-black text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-1">Nombre del Producto / Plato *</label>
+            <input type="text" id="prod-name" required placeholder="Ej: Mamona Especial Llanera (500g)" class="w-full px-3.5 py-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm font-semibold text-slate-900 dark:text-white focus:outline-none focus:border-orange-500">
+          </div>
+
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div>
+              <label class="block text-xs font-black text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-1">Precio en Pesos ($COP) *</label>
+              <input type="number" id="prod-price" required min="1000" step="500" placeholder="Ej: 35000" class="w-full px-3.5 py-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm font-semibold text-slate-900 dark:text-white focus:outline-none focus:border-orange-500">
+            </div>
+            <div>
+              <label class="block text-xs font-black text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-1">Categoría / Tipo</label>
+              <select id="prod-category" class="w-full px-3.5 py-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm font-semibold text-slate-900 dark:text-white focus:outline-none focus:border-orange-500">
+                <option value="Platos Fuertes">Platos Fuertes / Carnes</option>
+                <option value="Comidas Rápidas">Comidas Rápidas / Burgers</option>
+                <option value="Bebidas">Bebidas / Jugos Naturales</option>
+                <option value="Acompañamientos">Acompañamientos / Porciones</option>
+                <option value="Postres">Postres & Dulces</option>
+                <option value="Farmacia & Salud">Farmacia & Medicamentos</option>
+                <option value="Ferretería">Ferretería & Hogar</option>
+                <option value="Mascotas">Mascotas & PetShop</option>
+              </select>
+            </div>
+          </div>
+
+          <div>
+            <label class="block text-xs font-black text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-1">Descripción / Ingredientes</label>
+            <textarea id="prod-desc" rows="2" placeholder="Ej: Acompañado de yuca al vapor, plátano asado con queso y ají criollo llanero." class="w-full px-3.5 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm font-medium text-slate-900 dark:text-white focus:outline-none focus:border-orange-500"></textarea>
+          </div>
+
+          <div>
+            <label class="block text-xs font-black text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-1">URL de Imagen / Foto HD</label>
+            <div class="flex gap-2">
+              <input type="url" id="prod-img" placeholder="https://images.unsplash.com/..." class="flex-1 px-3.5 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-xs font-semibold text-slate-900 dark:text-white focus:outline-none focus:border-orange-500">
+              <button type="button" onclick="setPresetProductImage()" class="px-3 py-2 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 text-slate-700 dark:text-slate-300 font-bold text-xs rounded-xl border border-slate-200 dark:border-slate-700 cursor-pointer">
+                📷 Foto Demo
+              </button>
+            </div>
+          </div>
+
+          <div class="pt-2 flex items-center justify-end gap-3">
+            <button type="button" onclick="closeCreateProductModal()" class="px-4 py-2.5 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 text-slate-700 dark:text-slate-300 font-bold text-xs rounded-xl cursor-pointer">
+              Cancelar
+            </button>
+            <button type="submit" id="btn-save-prod" class="px-5 py-2.5 bg-orange-600 hover:bg-orange-500 text-white font-black text-xs rounded-xl shadow-lg shadow-orange-600/30 flex items-center gap-2 cursor-pointer transition-all active:scale-95">
+              <i class="fa-solid fa-check"></i> Guardar Producto
+            </button>
+          </div>
+        </form>
       </div>
     </div>
 

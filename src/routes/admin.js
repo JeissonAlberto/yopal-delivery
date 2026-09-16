@@ -130,4 +130,165 @@ router.get('/reports/financial.csv', (req, res) => {
   }
 });
 
+// ==============================================================================
+// 🔌 GESTIÓN DE WEBHOOKS E INTEGRACIONES EXTERNAS (ERPs, POS, WhatsApp AI)
+// ==============================================================================
+
+// Listar Webhooks
+router.get('/webhooks', (req, res) => {
+  try {
+    const webhooks = db.prepare('SELECT * FROM webhooks ORDER BY created_at DESC').all();
+    const formatted = webhooks.map(w => ({
+      ...w,
+      events: JSON.parse(w.events_json || '[]')
+    }));
+    res.json({ webhooks: formatted });
+  } catch (err) {
+    res.status(500).json({ error: 'Error consultando webhooks' });
+  }
+});
+
+// Registrar nuevo Webhook
+router.post('/webhooks', (req, res) => {
+  try {
+    const { name, target_url, events, secret } = req.body;
+    if (!name || !target_url) {
+      return res.status(400).json({ error: 'Nombre y URL destino son requeridos' });
+    }
+
+    const { v4: uuidv4 } = require('uuid');
+    const id = `whk-${uuidv4().substring(0, 8)}`;
+    const eventsJson = JSON.stringify(events || ['order.created', 'order.delivered']);
+
+    db.prepare(`
+      INSERT INTO webhooks (id, name, target_url, events_json, secret, is_active)
+      VALUES (?, ?, ?, ?, ?, 1)
+    `).run(id, name, target_url, eventsJson, secret || '');
+
+    res.status(201).json({ success: true, message: 'Webhook registrado exitosamente', id });
+  } catch (err) {
+    res.status(500).json({ error: 'Error registrando webhook' });
+  }
+});
+
+// Eliminar Webhook
+router.delete('/webhooks/:id', (req, res) => {
+  try {
+    const { id } = req.params;
+    db.prepare('DELETE FROM webhooks WHERE id = ?').run(id);
+    res.json({ success: true, message: 'Webhook eliminado' });
+  } catch (err) {
+    res.status(500).json({ error: 'Error eliminando webhook' });
+  }
+});
+
+// Enviar Ping de Prueba a un Webhook
+router.post('/webhooks/:id/test', (req, res) => {
+  try {
+    const { id } = req.params;
+    const webhook = db.prepare('SELECT * FROM webhooks WHERE id = ?').get(id);
+    if (!webhook) return res.status(404).json({ error: 'Webhook no encontrado' });
+
+    // Payload de prueba estandarizado
+    const testPayload = {
+      event: 'test.ping',
+      timestamp: new Date().toISOString(),
+      platform: 'LUPIN Express • Yopal, Casanare',
+      data: {
+        order_number: 'YPL-TEST-9999',
+        merchant: 'Mamona & Tradición Llanera',
+        total_cop: 45000,
+        status: 'delivered'
+      }
+    };
+
+    res.json({
+      success: true,
+      message: `Ping de prueba enviado a ${webhook.target_url}`,
+      payload_sent: testPayload
+    });
+  } catch (err) {
+    res.status(500).json({ error: 'Error ejecutando prueba de webhook' });
+  }
+});
+
+// ==============================================================================
+// ⚡ SIMULADOR DE PEDIDOS DE PRUEBA EN VIVO PARA ENTRENAMIENTO & NOC
+// ==============================================================================
+router.post('/simulate/burst', (req, res) => {
+  try {
+    const { v4: uuidv4 } = require('uuid');
+    const count = Math.min(5, Math.max(1, parseInt(req.body.count || 1, 10)));
+    const merchants = db.prepare('SELECT id, name, address, lat, lng FROM merchants LIMIT 5').all();
+    const client = db.prepare("SELECT id, name, phone FROM users WHERE role = 'client' LIMIT 1").get() || {
+      id: 'usr-client-01', name: 'Ana María Gómez', phone: '3109876543'
+    };
+
+    const createdOrders = [];
+    for (let i = 0; i < count; i++) {
+      const merchant = merchants[i % merchants.length];
+      const products = db.prepare('SELECT id, name, price FROM products WHERE merchant_id = ? LIMIT 2').all(merchant.id);
+      const product = products[0] || { id: 'prd-demo', name: 'Plato Tradicional Llanero', price: 28000 };
+
+      const orderId = `ord-sim-${uuidv4().substring(0, 8)}`;
+      const orderNumber = `YPL-${Math.floor(1000 + Math.random() * 9000)}-${Date.now().toString().slice(-4)}`;
+      const otpCode = Math.floor(1000 + Math.random() * 9000).toString();
+      const subtotal = product.price;
+      const deliveryFee = 4000;
+      const serviceFee = 1500;
+      const totalAmount = subtotal + deliveryFee + serviceFee;
+
+      const items = [{
+        product_id: product.id,
+        name: product.name,
+        price: product.price,
+        quantity: 1,
+        subtotal: product.price,
+        options: []
+      }];
+
+      db.prepare(`
+        INSERT INTO orders (
+          id, order_number, client_id, client_name, client_phone,
+          merchant_id, merchant_name, delivery_address, delivery_reference, delivery_lat, delivery_lng,
+          subtotal, delivery_fee, service_fee, tip_amount, total_amount,
+          payment_method, payment_status, otp_code, status
+        ) VALUES (
+          ?, ?, ?, ?, ?,
+          ?, ?, 'Calle 10 # 21-45, Yopal, Casanare', 'Pedido de prueba simulado desde Torre de Control NOC', 5.3400, -72.3950,
+          ?, ?, ?, 0, ?,
+          'bre_b', 'approved', ?, 'created'
+        )
+      `).run(
+        orderId, orderNumber, client.id, client.name, client.phone,
+        merchant.id, merchant.name, subtotal, deliveryFee, serviceFee, totalAmount,
+        otpCode
+      );
+
+      db.prepare(`
+        INSERT INTO order_items (id, order_id, product_id, product_name, quantity, unit_price, total_price)
+        VALUES (?, ?, ?, ?, 1, ?, ?)
+      `).run(`itm-${uuidv4().substring(0, 8)}`, orderId, product.id, product.name, product.price, product.price);
+
+      createdOrders.push({ orderId, orderNumber, merchant: merchant.name, totalAmount, otpCode });
+
+      // Emitir WebSocket para actualizar en vivo los 4 portales
+      const io = req.app.get('io');
+      if (io) {
+        io.emit('admin:order_created', { orderId, orderNumber, merchantName: merchant.name, total: totalAmount });
+        io.to(`merchant:${merchant.id}`).emit('merchant:new_order', { orderId, orderNumber, total: totalAmount });
+      }
+    }
+
+    res.status(201).json({
+      success: true,
+      message: `${count} pedido(s) simulado(s) generado(s) con éxito en Casanare.`,
+      orders: createdOrders
+    });
+  } catch (err) {
+    console.error('Error generando pedidos simulados:', err);
+    res.status(500).json({ error: 'Error al simular pedidos' });
+  }
+});
+
 module.exports = router;

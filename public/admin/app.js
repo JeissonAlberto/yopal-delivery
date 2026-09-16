@@ -317,3 +317,158 @@ function playChime() {
     osc.stop(ctx.currentTime + 0.4);
   } catch(e) {}
 }
+
+// ==============================================================================
+// 🔌 GESTIÓN DE WEBHOOKS & TABS
+// ==============================================================================
+let currentAdminTab = 'dispatch';
+
+function switchAdminTab(tab) {
+  currentAdminTab = tab;
+  const tabDispatch = document.getElementById('tab-dispatch');
+  const tabWebhooks = document.getElementById('tab-webhooks');
+  const btnDispatch = document.getElementById('tab-btn-dispatch');
+  const btnWebhooks = document.getElementById('tab-btn-webhooks');
+
+  if (tab === 'webhooks') {
+    tabDispatch.classList.add('hidden');
+    tabWebhooks.classList.remove('hidden');
+    btnWebhooks.className = 'py-3 border-b-2 border-orange-500 text-orange-600 dark:text-orange-400 font-black cursor-pointer flex items-center gap-2 transition-all';
+    btnDispatch.className = 'py-3 text-slate-500 hover:text-slate-900 dark:hover:text-white font-bold cursor-pointer flex items-center gap-2 transition-all';
+    loadWebhooks();
+  } else {
+    tabWebhooks.classList.add('hidden');
+    tabDispatch.classList.remove('hidden');
+    btnDispatch.className = 'py-3 border-b-2 border-orange-500 text-orange-600 dark:text-orange-400 font-black cursor-pointer flex items-center gap-2 transition-all';
+    btnWebhooks.className = 'py-3 text-slate-500 hover:text-slate-900 dark:hover:text-white font-bold cursor-pointer flex items-center gap-2 transition-all';
+    setTimeout(() => { if (adminMap) adminMap.invalidateSize(); }, 150);
+  }
+}
+
+async function loadWebhooks() {
+  try {
+    const res = await fetch('/api/admin/webhooks');
+    const data = await res.json();
+    const webhooks = data.webhooks || [];
+    
+    document.getElementById('webhooks-count').textContent = `${webhooks.length} registrado(s)`;
+    const tbody = document.getElementById('webhooks-table-body');
+
+    if (webhooks.length === 0) {
+      tbody.innerHTML = `
+        <div class="p-8 text-center text-slate-500">
+          <i class="fa-solid fa-plug-circle-xmark text-4xl mb-2 text-slate-400"></i>
+          <p class="font-bold">No hay webhooks registrados aún.</p>
+          <p class="text-xs text-slate-400 mt-1">Registra un endpoint para recibir eventos de pedidos en tiempo real.</p>
+        </div>
+      `;
+      return;
+    }
+
+    tbody.innerHTML = webhooks.map(w => `
+      <div class="p-4 flex items-center justify-between flex-wrap gap-3">
+        <div class="space-y-1">
+          <div class="flex items-center gap-2">
+            <span class="w-2.5 h-2.5 rounded-full ${w.is_active ? 'bg-emerald-500' : 'bg-slate-400'}"></span>
+            <span class="font-black text-sm text-slate-900 dark:text-white">${w.name}</span>
+            <span class="px-2 py-0.5 bg-orange-500/10 text-orange-600 text-[10px] font-bold rounded-md">HTTP POST</span>
+          </div>
+          <p class="text-xs font-mono text-slate-500 dark:text-slate-400 break-all">${w.target_url}</p>
+          <div class="flex gap-1.5 flex-wrap pt-1">
+            ${w.events.map(ev => `<span class="px-2 py-0.5 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 rounded text-[10px] font-bold">${ev}</span>`).join('')}
+          </div>
+        </div>
+        <div class="flex items-center gap-2">
+          <button onclick="testWebhookPing('${w.id}')" title="Enviar Ping de Prueba" class="px-3 py-1.5 bg-slate-100 dark:bg-slate-800 hover:bg-orange-600 text-slate-700 dark:text-slate-300 hover:text-white rounded-lg text-xs font-bold transition-all cursor-pointer">
+            <i class="fa-solid fa-satellite-dish mr-1"></i> Test Ping
+          </button>
+          <button onclick="deleteWebhookItem('${w.id}')" title="Eliminar Webhook" class="w-8 h-8 bg-rose-500/10 hover:bg-rose-600 text-rose-500 hover:text-white rounded-lg text-xs font-bold flex items-center justify-center transition-all cursor-pointer">
+            <i class="fa-solid fa-trash"></i>
+          </button>
+        </div>
+      </div>
+    `).join('');
+  } catch (err) {
+    console.error('Error cargando webhooks:', err);
+  }
+}
+
+function openCreateWebhookModal() {
+  document.getElementById('form-create-webhook').reset();
+  document.getElementById('modal-create-webhook').classList.remove('hidden');
+}
+
+function closeCreateWebhookModal() {
+  document.getElementById('modal-create-webhook').classList.add('hidden');
+}
+
+async function saveWebhookForm(e) {
+  e.preventDefault();
+  const name = document.getElementById('whk-name').value.trim();
+  const target_url = document.getElementById('whk-url').value.trim();
+  const secret = document.getElementById('whk-secret').value.trim();
+
+  try {
+    const res = await fetch('/api/admin/webhooks', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        name,
+        target_url,
+        secret,
+        events: ['order.created', 'order.preparing', 'order.ready_for_pickup', 'order.delivered']
+      })
+    });
+
+    if (res.ok) {
+      closeCreateWebhookModal();
+      loadWebhooks();
+      alert('✅ Webhook registrado exitosamente.');
+    } else {
+      alert('❌ Error al registrar webhook.');
+    }
+  } catch (err) {
+    alert('❌ Error en conexión.');
+  }
+}
+
+async function testWebhookPing(webhookId) {
+  try {
+    const res = await fetch(`/api/admin/webhooks/${webhookId}/test`, { method: 'POST' });
+    const data = await res.json();
+    alert(`📡 ${data.message}\n\nEvento: test.ping (HTTP 200 OK simulado)`);
+  } catch (err) {
+    alert('❌ Error en test ping.');
+  }
+}
+
+async function deleteWebhookItem(webhookId) {
+  if (!confirm('¿Seguro de eliminar este webhook?')) return;
+  try {
+    await fetch(`/api/admin/webhooks/${webhookId}`, { method: 'DELETE' });
+    loadWebhooks();
+  } catch (err) {
+    console.error(err);
+  }
+}
+
+// ==============================================================================
+// ⚡ SIMULADOR DE RÁFAGAS DE PEDIDOS EN VIVO (1-CLIC)
+// ==============================================================================
+async function simulateBurstOrders(count = 1) {
+  try {
+    const res = await fetch('/api/admin/simulate/burst', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ count })
+    });
+    const data = await res.json();
+    if (res.ok) {
+      playChime();
+      alert(`⚡ ${data.message}\n\nOrden generada: ${data.orders[0].orderNumber} (${data.orders[0].merchant})`);
+      refreshData();
+    }
+  } catch (err) {
+    console.error('Error simulando pedidos:', err);
+  }
+}

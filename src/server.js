@@ -50,18 +50,18 @@ const ipRequestHits = new Map();
 app.use('/api/auth/login', (req, res, next) => {
   const ip = req.headers['x-forwarded-for'] || req.ip || req.connection.remoteAddress || 'unknown';
   const now = Date.now();
-  const clientHits = ipRequestHits.get(ip) || { count: 0, resetAt: now + 60000 };
+  const clientHits = ipRequestHits.get(ip) || { count: 0, resetAt: now + 30000 };
 
   if (now > clientHits.resetAt) {
     clientHits.count = 1;
-    clientHits.resetAt = now + 60000;
+    clientHits.resetAt = now + 30000;
   } else {
     clientHits.count++;
   }
   ipRequestHits.set(ip, clientHits);
 
-  // Límite de 35 intentos de login por minuto por IP
-  if (clientHits.count > 35) {
+  // Límite de 40 intentos de login por ventana de 30s
+  if (clientHits.count > 40) {
     return res.status(429).json({ error: 'Demasiadas solicitudes de autenticación. Intenta de nuevo en un minuto.' });
   }
   next();

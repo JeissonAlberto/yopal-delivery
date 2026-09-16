@@ -393,6 +393,17 @@ function initDatabase() {
       FOREIGN KEY (user_id) REFERENCES users(id)
     );
 
+    -- 11. Sistema de Webhooks e Integraciones Externas para Torre de Control SuperAdmin
+    CREATE TABLE IF NOT EXISTS webhooks (
+      id TEXT PRIMARY KEY,
+      name TEXT NOT NULL,
+      target_url TEXT NOT NULL,
+      events_json TEXT NOT NULL,
+      secret TEXT,
+      is_active INTEGER DEFAULT 1,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    );
+
     -- Create Indexes for fast querying
     CREATE INDEX IF NOT EXISTS idx_merchants_category ON merchants(category);
     CREATE INDEX IF NOT EXISTS idx_products_merchant ON products(merchant_id);
@@ -412,6 +423,7 @@ function initDatabase() {
     CREATE INDEX IF NOT EXISTS idx_audit_action ON audit_logs(action);
     CREATE INDEX IF NOT EXISTS idx_payments_order ON payments(order_id);
     CREATE INDEX IF NOT EXISTS idx_payments_ref ON payments(reference_code);
+    CREATE INDEX IF NOT EXISTS idx_webhooks_active ON webhooks(is_active);
     CREATE INDEX IF NOT EXISTS idx_payments_status ON payments(status);
   `);
   

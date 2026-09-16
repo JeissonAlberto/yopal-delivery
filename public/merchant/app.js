@@ -258,32 +258,56 @@ async function updateOrderStatus(orderId, newStatus) {
   }
 }
 
+let loadedProducts = [];
+
 async function loadCatalog() {
   try {
     const res = await fetch(`/api/merchants/${currentMerchantId}`);
     const data = await res.json();
+    loadedProducts = data.products || [];
     const grid = document.getElementById('catalog-grid');
 
-    grid.innerHTML = data.products.map(p => `
-      <div class="bg-slate-800 border border-slate-700 rounded-2xl overflow-hidden shadow-lg flex flex-col justify-between">
+    if (loadedProducts.length === 0) {
+      grid.innerHTML = `
+        <div class="col-span-full py-12 text-center text-slate-500">
+          <i class="fa-solid fa-box-open text-4xl mb-3 text-slate-600"></i>
+          <p class="font-bold">No tienes productos en tu catálogo aún.</p>
+          <button onclick="openCreateProductModal()" class="mt-3 px-4 py-2 bg-orange-600 text-white text-xs font-black rounded-xl">
+            ＋ Crear Primer Producto
+          </button>
+        </div>
+      `;
+      return;
+    }
+
+    grid.innerHTML = loadedProducts.map(p => `
+      <div class="bg-slate-800 border border-slate-700 rounded-2xl overflow-hidden shadow-lg flex flex-col justify-between group hover:border-orange-500/50 transition-all">
         <div class="relative h-44 overflow-hidden bg-slate-900">
-          <img src="${p.image_url}" alt="${p.name}" class="w-full h-full object-cover">
-          <div class="absolute top-3 right-3">
-            <span class="px-3 py-1 rounded-full text-xs font-bold ${p.is_available ? 'bg-emerald-500 text-white' : 'bg-rose-500 text-white'}">
-              ${p.is_available ? 'Disponible' : 'Agotado'}
+          <img src="${p.image_url || 'https://images.unsplash.com/photo-1544025162-d76694265947?w=600'}" alt="${p.name}" class="w-full h-full object-cover">
+          <div class="absolute top-3 right-3 flex gap-2">
+            <span class="px-3 py-1 rounded-full text-xs font-black shadow-md ${p.is_available ? 'bg-emerald-500 text-white' : 'bg-rose-500 text-white'}">
+              ${p.is_available ? '🟢 Disponible' : '🔴 Agotado / Pausado'}
             </span>
           </div>
         </div>
         <div class="p-4 flex-1 flex flex-col justify-between space-y-3">
           <div>
-            <h3 class="font-bold text-white text-base">${p.name}</h3>
-            <p class="text-xs text-slate-400 mt-1 line-clamp-2">${p.description}</p>
+            <h3 class="font-black text-white text-base">${p.name}</h3>
+            <p class="text-xs text-slate-400 mt-1 line-clamp-2">${p.description || 'Sin descripción adicional.'}</p>
           </div>
-          <div class="flex items-center justify-between pt-3 border-t border-slate-700">
-            <span class="text-base font-extrabold text-orange-400">${formatCOP(p.price)}</span>
-            <button onclick="toggleProductAvailability('${p.id}')" class="px-3 py-1.5 bg-slate-700 hover:bg-slate-600 text-xs font-semibold rounded-lg text-slate-200 transition-colors">
-              ${p.is_available ? 'Pausar (Agotado)' : 'Reactivar'}
-            </button>
+          <div class="flex items-center justify-between pt-3 border-t border-slate-700/80">
+            <span class="text-base font-black text-orange-400">${formatCOP(p.price)}</span>
+            <div class="flex items-center gap-1.5">
+              <button onclick="toggleProductAvailability('${p.id}')" title="Pausar o reactivar en el menú de clientes" class="px-2.5 py-1.5 bg-slate-700 hover:bg-slate-600 text-xs font-bold rounded-lg text-slate-200 transition-colors cursor-pointer">
+                ${p.is_available ? 'Pausar' : 'Activar'}
+              </button>
+              <button onclick="openCreateProductModal('${p.id}')" title="Editar producto" class="w-8 h-8 bg-slate-700 hover:bg-orange-600 text-xs font-bold rounded-lg text-slate-200 hover:text-white flex items-center justify-center transition-colors cursor-pointer">
+                <i class="fa-solid fa-pen-to-square"></i>
+              </button>
+              <button onclick="deleteProductItem('${p.id}')" title="Eliminar producto" class="w-8 h-8 bg-rose-500/20 hover:bg-rose-600 text-xs font-bold rounded-lg text-rose-300 hover:text-white flex items-center justify-center transition-colors cursor-pointer">
+                <i class="fa-solid fa-trash"></i>
+              </button>
+            </div>
           </div>
         </div>
       </div>
@@ -296,6 +320,99 @@ async function loadCatalog() {
 async function toggleProductAvailability(productId) {
   try {
     await fetch(`/api/products/${productId}/toggle`, { method: 'PATCH' });
+    loadCatalog();
+  } catch (err) {
+    console.error(err);
+  }
+}
+
+function openCreateProductModal(productId = null) {
+  const modal = document.getElementById('modal-create-product');
+  const title = document.getElementById('modal-product-title');
+  const form = document.getElementById('form-create-product');
+  form.reset();
+
+  if (productId) {
+    const prod = loadedProducts.find(p => p.id === productId);
+    if (prod) {
+      title.textContent = 'Editar Producto / Plato';
+      document.getElementById('prod-id').value = prod.id;
+      document.getElementById('prod-name').value = prod.name;
+      document.getElementById('prod-price').value = prod.price;
+      document.getElementById('prod-desc').value = prod.description || '';
+      document.getElementById('prod-img').value = prod.image_url || '';
+    }
+  } else {
+    title.textContent = 'Nuevo Producto / Plato';
+    document.getElementById('prod-id').value = '';
+    setPresetProductImage();
+  }
+
+  modal.classList.remove('hidden');
+}
+
+function closeCreateProductModal() {
+  document.getElementById('modal-create-product').classList.add('hidden');
+}
+
+function setPresetProductImage() {
+  const presets = [
+    'https://images.unsplash.com/photo-1544025162-d76694265947?w=600', // Carne Asada
+    'https://images.unsplash.com/photo-1568901346375-23c9450c58cd?w=600', // Burger
+    'https://images.unsplash.com/photo-1555939594-58d7cb561ad1?w=600', // Parrilla
+    'https://images.unsplash.com/photo-1565299624946-b28f40a0ae38?w=600', // Pizza
+    'https://images.unsplash.com/photo-1584308666744-24d5c474f2ae?w=600', // Farmacia
+    'https://images.unsplash.com/photo-1586864387967-d02ef85d93e8?w=600'  // Ferretería
+  ];
+  const randomPreset = presets[Math.floor(Math.random() * presets.length)];
+  document.getElementById('prod-img').value = randomPreset;
+}
+
+async function saveProductForm(e) {
+  e.preventDefault();
+  const id = document.getElementById('prod-id').value;
+  const name = document.getElementById('prod-name').value.trim();
+  const price = parseInt(document.getElementById('prod-price').value, 10);
+  const description = document.getElementById('prod-desc').value.trim();
+  const image_url = document.getElementById('prod-img').value.trim();
+
+  try {
+    if (id) {
+      // Actualizar producto existente
+      await fetch(`/api/products/${id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name, price, description, image_url })
+      });
+    } else {
+      // Crear nuevo producto
+      await fetch('/api/products', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          merchant_id: currentMerchantId,
+          name,
+          price,
+          description,
+          image_url,
+          options: []
+        })
+      });
+    }
+
+    closeCreateProductModal();
+    loadCatalog();
+    alert('✅ Producto guardado y sincronizado con éxito en tu menú de Yopal.');
+  } catch (err) {
+    console.error('Error guardando producto:', err);
+    alert('❌ Error al guardar producto.');
+  }
+}
+
+async function deleteProductItem(productId) {
+  if (!confirm('¿Estás seguro de eliminar este producto del menú?')) return;
+  try {
+    await fetch(`/api/products/${productId}`, { method: 'DELETE' });
     loadCatalog();
   } catch (err) {
     console.error(err);
