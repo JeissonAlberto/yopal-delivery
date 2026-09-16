@@ -280,46 +280,51 @@ function renderMerchants() {
   }
 
   grid.innerHTML = allMerchants.map(m => `
-    <div onclick="openMerchantDetail('${m.id}')" class="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 overflow-hidden shadow-sm hover:shadow-md hover:border-orange-600 dark:hover:border-orange-600 transition-all cursor-pointer group flex flex-col justify-between">
+    <div onclick="openMerchantDetail('${m.id}')" class="card-luxury overflow-hidden cursor-pointer group flex flex-col justify-between">
       <div>
-        <div class="h-40 relative overflow-hidden bg-slate-100 dark:bg-slate-800">
-          <img src="${m.banner_url || m.logo_url}" alt="${m.name}" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300">
+        <div class="h-44 relative overflow-hidden bg-slate-100 dark:bg-slate-800">
+          <img src="${m.banner_url || m.logo_url}" alt="${m.name}" onerror="this.src='https://images.unsplash.com/photo-1544025162-d76694265947?w=500'" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500">
+          <div class="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-black/20 pointer-events-none"></div>
           
           <!-- Top Left: Rating Bayesiano & Destacado -->
-          <div class="absolute top-3 left-3 flex items-center gap-1.5">
-            <div class="bg-white/95 dark:bg-slate-900/95 backdrop-blur-sm px-2.5 py-1 rounded-full text-[11px] font-black text-slate-800 dark:text-white flex items-center gap-1 shadow">
+          <div class="absolute top-3 left-3 flex items-center gap-1.5 z-10">
+            <div class="bg-white/95 dark:bg-slate-900/95 backdrop-blur-md px-2.5 py-1 rounded-full text-[11px] font-black text-slate-900 dark:text-white flex items-center gap-1 shadow-md border border-white/20">
               <i class="fa-solid fa-star text-amber-500"></i> ${m.rating} <span class="text-[9px] text-slate-400 font-bold">Bayesiano</span>
             </div>
             ${m.is_featured ? `
-              <span class="bg-orange-600 text-white px-2 py-1 rounded-full text-[9px] font-black uppercase shadow">
-                ⭐ DESTACADO
+              <span class="bg-gradient-to-r from-orange-600 to-amber-500 text-white px-2.5 py-1 rounded-full text-[9px] font-black uppercase tracking-wider shadow-md">
+                ⭐ TOP
               </span>
             ` : ''}
           </div>
 
           <!-- Top Right: Tiempo Estimado -->
-          <div class="absolute top-3 right-3 bg-white/95 dark:bg-slate-900/95 backdrop-blur-sm px-2.5 py-1 rounded-full text-[11px] font-bold text-slate-800 dark:text-white shadow">
-            ${m.estimatedTime} min
+          <div class="absolute top-3 right-3 bg-slate-950/80 backdrop-blur-md text-white px-2.5 py-1 rounded-full text-[11px] font-black shadow-md border border-white/10 z-10 flex items-center gap-1">
+            <i class="fa-regular fa-clock text-[10px] text-orange-400"></i> ${m.estimatedTime} min
           </div>
-        </div>
 
-        <div class="p-4 space-y-1">
-          <div class="flex items-center justify-between">
-            <span class="text-[10px] font-black uppercase tracking-wider text-orange-600">${m.category}</span>
-            <span class="text-[10px] font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-full border border-emerald-500/20">
+          <!-- Bottom Banner: Category Name Tag -->
+          <div class="absolute bottom-2.5 left-3 right-3 flex items-center justify-between text-white z-10">
+            <span class="text-[11px] font-black uppercase tracking-wider bg-orange-600/90 px-2 py-0.5 rounded-md backdrop-blur-sm shadow">${m.category}</span>
+            <span class="text-[10px] font-bold text-emerald-400 bg-slate-950/80 px-2 py-0.5 rounded-md backdrop-blur-sm border border-emerald-500/30">
               ⚡ Gratis con VIP
             </span>
           </div>
-          <h3 class="font-bold text-slate-900 dark:text-white text-base group-hover:text-orange-600 transition-colors">${m.name}</h3>
-          <p class="text-xs text-slate-500 dark:text-slate-400 line-clamp-2">${m.description}</p>
+        </div>
+
+        <div class="p-4 space-y-1.5">
+          <h3 class="font-black text-slate-900 dark:text-white text-base group-hover:text-orange-600 transition-colors leading-snug">${m.name}</h3>
+          <p class="text-xs text-slate-500 dark:text-slate-400 line-clamp-2 leading-relaxed">${m.description}</p>
         </div>
       </div>
 
-      <div class="px-4 py-3 bg-slate-50 dark:bg-slate-800/60 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between text-xs font-semibold">
-        <span class="flex items-center gap-1 text-slate-600 dark:text-slate-300">
-          <i class="fa-solid fa-motorcycle text-orange-600"></i> Envío: <strong class="text-slate-900 dark:text-white">${formatCOP(m.deliveryFee)}</strong>
+      <div class="px-4 py-3 bg-slate-50 dark:bg-slate-800/60 border-t border-slate-100 dark:border-slate-800/80 flex items-center justify-between text-xs font-semibold">
+        <span class="flex items-center gap-1.5 text-slate-700 dark:text-slate-300">
+          <i class="fa-solid fa-motorcycle text-orange-600"></i> Domicilio: <strong class="text-slate-900 dark:text-white font-black">${formatCOP(m.deliveryFee || 4000)}</strong>
         </span>
-        <span class="text-slate-400">${m.distanceKm} km</span>
+        <span class="text-slate-400 font-medium flex items-center gap-1">
+          <i class="fa-solid fa-location-dot text-[10px]"></i> ${m.distanceKm} km
+        </span>
       </div>
     </div>
   `).join('');

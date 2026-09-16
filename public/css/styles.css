@@ -168,6 +168,93 @@ body, header, nav, footer, .theme-card, .theme-input {
   will-change: transform, opacity;
 }
 
+/* ==========================================================================
+   UI/UX PRO MAX - GLASSMORPHISM, BADGES & CARD POLISH
+   ========================================================================== */
+.glass-panel {
+  background: var(--header-bg);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid var(--border-subtle);
+}
+
+.story-ring {
+  background: linear-gradient(135deg, #ea580c, #f59e0b, #10b981);
+  padding: 2.5px;
+  border-radius: 9999px;
+  transition: transform var(--dur-fast) var(--ease-spring);
+}
+.story-ring:hover {
+  transform: scale(1.06);
+}
+
+.story-ring-active {
+  box-shadow: 0 0 16px rgba(234, 88, 12, 0.45);
+}
+
+.card-luxury {
+  background-color: var(--bg-card);
+  border: 1px solid var(--border-subtle);
+  border-radius: 1.5rem;
+  box-shadow: var(--shadow-card);
+  transition: transform var(--dur-normal) var(--ease-spring), box-shadow var(--dur-normal) var(--ease-spring), border-color var(--dur-normal) ease;
+}
+
+.card-luxury:hover {
+  transform: translateY(-4px);
+  box-shadow: var(--shadow-hover);
+  border-color: rgba(234, 88, 12, 0.4);
+}
+
+.btn-primary-orange {
+  background: linear-gradient(135deg, #ea580c 0%, #d97706 100%);
+  color: #ffffff;
+  font-weight: 800;
+  border-radius: 1rem;
+  box-shadow: 0 8px 20px -4px rgba(234, 88, 12, 0.35);
+  transition: transform var(--dur-fast) var(--ease-spring), box-shadow var(--dur-fast) ease, opacity var(--dur-fast) ease;
+}
+
+.btn-primary-orange:hover {
+  background: linear-gradient(135deg, #c2410c 0%, #b45309 100%);
+  box-shadow: 0 12px 24px -4px rgba(234, 88, 12, 0.45);
+}
+
+.btn-primary-orange:active {
+  transform: scale(0.96);
+}
+
+.btn-secondary-emerald {
+  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+  color: #ffffff;
+  font-weight: 800;
+  border-radius: 1rem;
+  box-shadow: 0 8px 20px -4px rgba(16, 185, 129, 0.35);
+  transition: transform var(--dur-fast) var(--ease-spring), box-shadow var(--dur-fast) ease;
+}
+
+.btn-secondary-emerald:hover {
+  background: linear-gradient(135deg, #059669 0%, #047857 100%);
+  box-shadow: 0 12px 24px -4px rgba(16, 185, 129, 0.45);
+}
+
+.btn-secondary-emerald:active {
+  transform: scale(0.96);
+}
+
+.badge-bayesian {
+  background: rgba(234, 88, 12, 0.12);
+  color: #ea580c;
+  border: 1px solid rgba(234, 88, 12, 0.25);
+  font-weight: 800;
+}
+
+html.dark .badge-bayesian {
+  background: rgba(234, 88, 12, 0.20);
+  color: #fb923c;
+  border-color: rgba(234, 88, 12, 0.40);
+}
+
 .bottom-sheet-anim {
   animation: sheetSlideUp var(--dur-slow) var(--ease-sheet) forwards;
   will-change: transform;
