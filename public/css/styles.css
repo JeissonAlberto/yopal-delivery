@@ -29,21 +29,39 @@
 }
 
 /* ==========================================================================
-   MODO DÍA (LIGHT MODE)
+   MODO DÍA (LIGHT MODE) - ALTO CONTRASTE WCAG AAA CON LETRAS OSCURAS
    ========================================================================== */
 html:not(.dark), body:not(.dark) {
   --bg-page: #f8fafc;
   --bg-card: #ffffff;
   --bg-card-hover: #f1f5f9;
-  --bg-muted: #f1f5f9;
-  --border-subtle: #e2e8f0;
-  --border-strong: #cbd5e1;
-  --text-main: #0f172a;
-  --text-muted: #64748b;
-  --text-subtle: #94a3b8;
-  --header-bg: rgba(255, 255, 255, 0.92);
-  --shadow-card: 0 4px 20px -2px rgba(15, 23, 42, 0.06);
-  --shadow-hover: 0 16px 32px -6px rgba(234, 88, 12, 0.12), 0 6px 12px -3px rgba(0, 0, 0, 0.04);
+  --bg-muted: #e2e8f0;
+  --border-subtle: #cbd5e1;
+  --border-strong: #94a3b8;
+  --text-main: #090d16;
+  --text-muted: #1e293b;
+  --text-subtle: #334155;
+  --header-bg: rgba(255, 255, 255, 0.96);
+  --shadow-card: 0 4px 20px -2px rgba(15, 23, 42, 0.08);
+  --shadow-hover: 0 16px 32px -6px rgba(234, 88, 12, 0.16), 0 6px 12px -3px rgba(0, 0, 0, 0.08);
+}
+
+/* En Modo Claro, asegurar que los textos secundarios tengan contraste oscuro */
+html:not(.dark) .text-slate-400,
+html:not(.dark) .text-slate-500 {
+  color: #334155 !important;
+  font-weight: 600;
+}
+
+html:not(.dark) .text-slate-600 {
+  color: #1e293b !important;
+}
+
+html:not(.dark) input,
+html:not(.dark) select,
+html:not(.dark) textarea {
+  color: #090d16 !important;
+  font-weight: 700;
 }
 
 /* ==========================================================================

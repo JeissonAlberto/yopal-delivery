@@ -346,11 +346,28 @@ let searchDebounceTimeout = null;
 
 function handleSearch() {
   clearTimeout(searchDebounceTimeout);
+  const input = document.getElementById('search-input');
+  const btnClear = document.getElementById('btn-clear-search');
+  searchQuery = input ? input.value.trim() : '';
+
+  if (btnClear) {
+    if (searchQuery.length > 0) btnClear.classList.remove('hidden');
+    else btnClear.classList.add('hidden');
+  }
+
   searchDebounceTimeout = setTimeout(() => {
-    const input = document.getElementById('search-input');
-    searchQuery = input ? input.value.trim() : '';
     loadMerchants();
-  }, 200);
+  }, 150);
+}
+
+function clearSearch() {
+  const input = document.getElementById('search-input');
+  const btnClear = document.getElementById('btn-clear-search');
+  if (input) input.value = '';
+  if (btnClear) btnClear.classList.add('hidden');
+  searchQuery = '';
+  playPopSound();
+  loadMerchants();
 }
 
 // --------------------------------------------------------------------------
