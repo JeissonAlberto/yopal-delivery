@@ -345,3 +345,79 @@ a:focus-visible, button:focus-visible, input:focus-visible, select:focus-visible
   outline: 2px solid var(--brand-orange);
   outline-offset: 2px;
 }
+
+/* ==========================================================================
+   SISTEMA DE ADAPTABILIDAD RESPONSIVA PARA TODOS LOS TAMAÑOS (320px - 4K)
+   ========================================================================== */
+html, body {
+  overflow-x: hidden !important;
+  width: 100% !important;
+  min-width: 320px !important;
+  -webkit-text-size-adjust: 100%;
+}
+
+/* Ocultar barra de scroll en carruseles horizontales táctiles */
+.scrollbar-none {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+.scrollbar-none::-webkit-scrollbar {
+  display: none;
+}
+
+/* Soporte para Notch de iPhone y Barras de Navegación Android */
+.pb-safe {
+  padding-bottom: max(1rem, env(safe-area-inset-bottom, 16px));
+}
+
+.pt-safe {
+  padding-top: max(1rem, env(safe-area-inset-top, 16px));
+}
+
+/* Modal Responsive Adaptable a Teléfonos Pequeños */
+.modal-responsive-card {
+  width: 100%;
+  max-width: 32rem;
+  max-height: 90vh;
+  max-height: 90dvh;
+  display: flex;
+  flex-direction: column;
+}
+
+.modal-responsive-body {
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  flex: 1 1 auto;
+}
+
+/* Tarjetas Fluidas con Adaptabilidad a 1, 2 o 3 Columnas */
+.grid-fluid-merchants {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 1.25rem;
+}
+
+@media (max-width: 640px) {
+  .grid-fluid-merchants {
+    grid-template-columns: 1fr;
+    gap: 1rem;
+  }
+}
+
+/* Altura Dinámica de Mapas en Teléfonos */
+.map-dynamic-view {
+  width: 100% !important;
+  height: 380px !important;
+}
+
+@media (max-width: 640px) {
+  .map-dynamic-view {
+    height: 280px !important;
+  }
+}
+
+@media (min-width: 1024px) {
+  .map-dynamic-view {
+    height: 480px !important;
+  }
+}
